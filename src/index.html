@@ -1,1 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title id="pageTitle">Unearthed | Archaeological Finds</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+
+  <style>
+    :root {
+      --bg: #f5f0e1;
+      --surface: #ffffff;
+      --accent: #4e6c50;
+      --border: #d8d3c4;
+      --text: #111;
+    }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 0;
+    }
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: .8rem;
+      padding: .7rem 1rem .7rem .8rem;
+      background: var(--surface);
+      border-bottom: 1px solid rgba(0,0,0,.03);
+      box-shadow: 0 2px 10px rgba(0,0,0,.04);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: .8rem;
+      min-width: 0;
+    }
+    .logo-circle {
+      width: 38px;
+      height: 38px;
+      border-radius: 9999px;
+      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.6), rgba(78,108,80,1));
+      display: grid;
+      place-items: center;
+      box-shadow: 0 3px 10px rgba(0,0,0,.15);
+      flex: 0 0 auto;
+    }
+    .logo-circle svg {
+      width: 22px;
+      height: 22px;
+      stroke: #fff;
+      stroke-width: 1.5;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .brand-block {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.1;
+      min-width: 0;
+    }
+    .brand-title {
+      font-weight: 700;
+      letter-spacing: .04em;
+      font-size: 1.02rem;
+      white-space: nowrap;
+      color: var(--text);
+    }
+    .brand-sub {
+      font-size: .65rem;
+      color: #666;
+    }
+
+    /* Language dropdown (discrete, top right) */
+    .lang-toggle {
+      position: relative;
+    }
+    .lang-current {
+      background: rgba(0,0,0,0.03);
+      border: 1px solid rgba(0,0,0,0.06);
+      border-radius: 999px;
+      padding: .2rem .6rem;
+      font-size: .78rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: .35rem;
+      color: #111;
+    }
+    .lang-menu {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 0.35rem);
+      background: #fff;
+      border: 1px solid rgba(0,0,0,.05);
+      border-radius: .5rem;
+      min-width: 130px;
+      box-shadow: 0 8px 25px rgba(0,0,0,.1);
+      display: none;
+      z-index: 10;
+      color: #111;
+    }
+    .lang-menu button {
+      background: transparent;
+      border: none;
+      width: 100%;
+      text-align: left;
+      padding: .38rem .6rem;
+      font-size: .78rem;
+      cursor: pointer;
+      color: #111;
+    }
+    .lang-menu button:hover {
+      background: rgba(0,0,0,.05);
+    }
+    .lang-toggle.open .lang-menu {
+      display: block;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: auto;
+      padding: 1.5rem 1rem 4rem 1rem;
+      background: var(--surface);
+      min-height: 100vh;
+    }
+    label {
+      display: block;
+      margin-top: 0.7em;
+      font-weight: 600;
+    }
+    input, select, textarea, button {
+      display: block;
+      width: 100%;
+      margin-top: 0.25em;
+      font-size: 1em;
+      box-sizing: border-box;
+    }
+    input, select, textarea {
+      padding: 0.55em 0.6em;
+      border: 1px solid #ccc;
+      border-radius: 7px;
+      background: #fff;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: 2px solid rgba(78,108,80,.22);
+      border-color: var(--accent);
+    }
+    textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+    button {
+      background: var(--accent);
+      color: white;
+      padding: 0.8em;
+      border: none;
+      border-radius: 7px;
+      cursor: pointer;
+      margin-top: 1.2em;
+      font-weight: 600;
+    }
+    button.secondary {
+      background: #2f4f4f;
+    }
+    #map {
+      height: 250px;
+      margin-top: 1em;
+      border-radius: 7px;
+      overflow: hidden;
+      border: 1px solid rgba(0,0,0,.05);
+    }
+    .two-col {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.2rem;
+      margin-bottom: 1.4rem;
+    }
+    .two-col > div {
+      flex: 1;
+      min-width: 260px;
+      background: rgba(245,240,225,.4);
+      border: 1px solid rgba(216,211,196,0.6);
+      border-radius: 10px;
+      padding: 1rem .9rem 1.1rem .9rem;
+    }
+    .email-options {
+      margin-top: 1.1rem;
+      background: #f7f7f7;
+      padding: 0.7em 0.8em;
+      border-radius: 7px;
+      border: 1px solid rgba(0,0,0,.03);
+    }
+    .email-options label {
+      font-weight: normal;
+      display: flex;
+      align-items: center;
+      gap: 0.5em;
+      margin-top: 0.4em;
+    }
+    .email-options input[type="checkbox"] {
+      width: auto;
+      display: inline-block;
+      margin: 0;
+    }
+    .email-hint {
+      font-size: 0.7rem;
+      color: #555;
+      margin-top: 0.5em;
+    }
+    @media (max-width: 700px) {
+      .container {
+        padding-inline: .8rem;
+      }
+      .two-col > div {
+        background: #fff;
+        border: none;
+        padding: .5rem 0 0 0;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-left">
+    <div class="logo-circle" aria-hidden="true">
+      <!-- Metal detector icon -->
+      <svg viewBox="0 0 24 24">
+        <path d="M8 4h3" />
+        <path d="M9.5 5 14 15" />
+        <circle cx="16.5" cy="17.5" r="2.5" />
+        <path d="M5 9c1.3-.8 2.6-.8 3.9 0" />
+        <path d="M4 6c2-1.4 4-1.4 6 0" />
+      </svg>
+    </div>
+    <div class="brand-block">
+      <span class="brand-title" data-i18n="appName">Unearthed</span>
+      <span class="brand-sub" data-i18n="appTagline">Find reporting for detectorists - A prototype webapp by Kodeklubben Sandsli</span>
+    </div>
+  </div>
+  <div class="lang-toggle" id="langToggle">
+    <button type="button" class="lang-current" id="langCurrent" aria-label="Change language">
+      🌐 <span id="langLabel">EN</span>
+    </button>
+    <div class="lang-menu" aria-label="Language menu">
+      <button type="button" data-lang="en" onclick="setLanguageFromTopbar('en')">English</button>
+      <button type="button" data-lang="no" onclick="setLanguageFromTopbar('no')">Norsk</button>
+      <button type="button" data-lang="es" onclick="setLanguageFromTopbar('es')">Español</button>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+  <h2 id="formTitle" data-i18n="pageHeading">Report a find</h2>
+  <p id="introText" data-i18n="pageSub">
+    Fill in the details below. Your GPS will be used, and the official PDF will be filled automatically.
+  </p>
+
+  <!-- Finder + Land owner -->
+  <div class="two-col">
+    <div>
+      <h3 data-i18n="finderTitle">Finder</h3>
+      <label for="finderName" data-i18n="labelName">Name</label>
+      <input type="text" id="finderName" placeholder="Your full name" data-i18n-placeholder="phName" />
+      <label for="finderAddress" data-i18n="labelAddress">Address</label>
+      <input type="text" id="finderAddress" data-i18n-placeholder="phAddress" />
+      <label for="finderPhone" data-i18n="labelPhone">Telephone</label>
+      <input type="text" id="finderPhone" data-i18n-placeholder="phPhone" />
+      <label for="finderEmail" data-i18n="labelEmail">Email</label>
+      <input type="email" id="finderEmail" data-i18n-placeholder="phEmail" />
+    </div>
+
+    <div>
+      <h3 data-i18n="ownerTitle">Land owner</h3>
+      <label for="ownerName" data-i18n="labelName">Name</label>
+      <input type="text" id="ownerName" data-i18n-placeholder="phOwnerName" />
+      <label for="ownerAddress" data-i18n="labelAddress">Address</label>
+      <input type="text" id="ownerAddress" data-i18n-placeholder="phAddress" />
+      <label for="ownerPhone" data-i18n="labelPhone">Telephone</label>
+      <input type="text" id="ownerPhone" data-i18n-placeholder="phPhone" />
+      <label for="ownerEmail" data-i18n="labelEmail">Email</label>
+      <input type="email" id="ownerEmail" data-i18n-placeholder="phEmail" />
+    </div>
+  </div>
+
+  <form id="findForm" onsubmit="event.preventDefault();">
+    <label for="objectName" data-i18n="labelObjectName">Object Name</label>
+    <input type="text" id="objectName" required data-i18n-placeholder="phObjectName" />
+
+    <label for="objectType" data-i18n="labelObjectType">Type of Object</label>
+    <select id="objectType">
+      <option data-i18n="optTool">Tool</option>
+      <option data-i18n="optWeapon">Weapon</option>
+      <option data-i18n="optJewelry">Jewelry</option>
+      <option data-i18n="optPottery">Pottery</option>
+      <option data-i18n="optOther">Other</option>
+    </select>
+
+    <label for="material" data-i18n="labelMaterial">Antatt materiale</label>
+    <input type="text" id="material" data-i18n-placeholder="phMaterial" />
+
+    <label for="age" data-i18n="labelAge">Estimated Age</label>
+    <input type="text" id="age" data-i18n-placeholder="phAge" />
+
+    <label for="arealtype" data-i18n="labelAreaType">Arealtype</label>
+    <select id="arealtype">
+      <option value="">--</option>
+      <option value="Åker" data-i18n="optArealAker">Åker</option>
+      <option value="Beite" data-i18n="optArealBeite">Beite</option>
+      <option value="Hage" data-i18n="optArealHage">Hage</option>
+      <option value="Skog" data-i18n="optArealSkog">Skog</option>
+      <option value="Fjell" data-i18n="optArealFjell">Fjell</option>
+      <option value="Strand" data-i18n="optArealStrand">Strand</option>
+      <option value="Vann" data-i18n="optArealVann">Vann</option>
+    </select>
+
+    <label for="findDepth" data-i18n="labelDepth">Funndybde (cm)</label>
+    <input type="number" id="findDepth" min="0" step="1" data-i18n-placeholder="phDepth" />
+
+    <label for="location" data-i18n="labelLocation">Location</label>
+    <input type="text" id="location" readonly required data-i18n-placeholder="phLocation" />
+    <button type="button" onclick="useCurrentLocation()" data-i18n="btnUseLocation">
+      Use current location
+    </button>
+
+    <div id="map"></div>
+
+    <label for="photo" data-i18n="labelPhoto">Upload Photo</label>
+    <input type="file" id="photo" accept="image/*" multiple />
+
+    <label for="notes" data-i18n="labelNotes">Notes</label>
+    <textarea id="notes" data-i18n-placeholder="phNotes"></textarea>
+
+    <!-- Button changed: no implicit submit -->
+    <button type="button" class="secondary" onclick="saveAsPDF()" data-i18n="btnDownload">
+      Download official form (filled)
+    </button>
+
+    <div class="email-options">
+      <label>
+        <input type="checkbox" id="emailFinder" />
+        <span data-i18n="cbEmailFinder">Send copy (data + PDF) to finder</span>
+      </label>
+      <label>
+        <input type="checkbox" id="emailOwner" />
+        <span data-i18n="cbEmailOwner">Send copy (data + PDF) to land owner</span>
+      </label>
+      <p class="email-hint" data-i18n="emailHint">
+        NB: To send email you still need a small server endpoint.
+      </p>
+    </div>
+  </form>
+</div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="i18n.js"></script>
+<script src="map-and-location.js"></script>
+<script src="export.js"></script>
+
+<!-- Language dropdown behavior -->
+<script>
+  (function(){
+    const toggle = document.getElementById("langToggle");
+    const current = document.getElementById("langCurrent");
+    current.addEventListener("click", () => toggle.classList.toggle("open"));
+    document.addEventListener("click", e => {
+      if (!toggle.contains(e.target)) toggle.classList.remove("open");
+    });
+  })();
+  function setLanguageFromTopbar(lang) {
+    if (typeof setLanguage === "function") setLanguage(lang);
+    const label = document.getElementById("langLabel");
+    if (label) label.textContent = lang.toUpperCase();
+    document.getElementById("langToggle")?.classList.remove("open");
+  }
+</script>
+
+<!-- Prevent premature form submission -->
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const form = document.getElementById("findForm");
+    if (!form) return;
+    form.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        const tag = event.target.tagName.toLowerCase();
+        // allow Enter only in textareas
+        if (tag !== "textarea") {
+          event.preventDefault();
+          return false;
+        }
+      }
+    });
+  });
+</script>
+
+</body>
+</html>
 
