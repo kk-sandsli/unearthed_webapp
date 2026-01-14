@@ -473,12 +473,31 @@ window.dbg && window.dbg("saveAsPDF exists: " + (typeof window.saveAsPDF !== "un
   if (mapEl) {
     mapEl.addEventListener("click", function(e) {
       window.dbg && window.dbg("Raw click on #map div");
+      // Check if Leaflet map is attached
+      if (window.AppMap) {
+        var latlon = window.AppMap.getLastLatLon();
+        window.dbg && window.dbg("Last latlon: " + (latlon ? (latlon.lat + "," + latlon.lon) : "null"));
+      }
     });
   }
   
   // Add test for location button
   var locBtn = document.querySelector('button[onclick*="useCurrentLocation"]');
   window.dbg && window.dbg("Location button: " + (locBtn ? "found" : "NOT FOUND"));
+  
+  // Delayed check to see map state after init
+  setTimeout(function() {
+    window.dbg && window.dbg("=== Delayed map check ===");
+    if (window.AppMap) {
+      window.dbg && window.dbg("AppMap.getLastLatLon: " + (typeof window.AppMap.getLastLatLon));
+    }
+    // Check if Leaflet map container has the map
+    var mapDiv = document.getElementById("map");
+    if (mapDiv) {
+      window.dbg && window.dbg("map div classes: " + mapDiv.className);
+      window.dbg && window.dbg("map div children: " + mapDiv.children.length);
+    }
+  }, 2000);
 })();
 </script>
 
@@ -515,20 +534,32 @@ window.dbg && window.dbg("saveAsPDF exists: " + (typeof window.saveAsPDF !== "un
 
 <!-- Prevent premature form submission -->
 <script>
-  document.addEventListener("DOMContentLoaded", function() {
-    var form = document.getElementById("findForm");
-    if (!form) return;
-    form.addEventListener("keydown", function(event) {
-      if (event.key === "Enter") {
-        var tag = event.target.tagName.toLowerCase();
-        // allow Enter only in textareas
-        if (tag !== "textarea") {
-          event.preventDefault();
-          return false;
-        }
+  try {
+    window.dbg && window.dbg("Form script starting");
+    document.addEventListener("DOMContentLoaded", function() {
+      window.dbg && window.dbg("Form DOMContentLoaded handler");
+      var form = document.getElementById("findForm");
+      if (!form) {
+        window.dbg && window.dbg("Form not found");
+        return;
       }
+      form.addEventListener("keydown", function(event) {
+        // event.key might not exist in older Safari
+        var key = event.key || event.keyCode;
+        if (key === "Enter" || key === 13) {
+          var tag = event.target.tagName.toLowerCase();
+          if (tag !== "textarea") {
+            event.preventDefault();
+            return false;
+          }
+        }
+      });
+      window.dbg && window.dbg("Form keydown handler attached");
     });
-  });
+    window.dbg && window.dbg("Form script done");
+  } catch(e) {
+    window.dbg && window.dbg("Form script error: " + e.message);
+  }
 </script>
 
 </body>
