@@ -455,6 +455,112 @@ if (typeof window.AppMap !== "undefined" && typeof window.AppMap.initMapAndLocat
 }
 </script>
 
+<!-- Finder persistence (inline for Safari compatibility - no async/await) -->
+<script>
+(function() {
+  var dbg = window.dbg || function(){};
+  var FINDER_KEY = "unearthed-finder";
+  
+  dbg("[finder] Inline finder script running");
+  
+  function isStorageAvailable() {
+    try {
+      var t = "__test__";
+      localStorage.setItem(t, t);
+      localStorage.removeItem(t);
+      return true;
+    } catch(e) {
+      return false;
+    }
+  }
+  
+  function loadFinder() {
+    if (!isStorageAvailable()) {
+      dbg("[finder] localStorage not available");
+      return null;
+    }
+    try {
+      var s = localStorage.getItem(FINDER_KEY);
+      dbg("[finder] Raw stored: " + (s ? s : "(empty)"));
+      return s ? JSON.parse(s) : null;
+    } catch(e) {
+      dbg("[finder] Load error: " + e.message);
+      return null;
+    }
+  }
+  
+  function saveFinder() {
+    if (!isStorageAvailable()) return;
+    try {
+      var finder = {
+        name: (document.getElementById("finderName") || {}).value || "",
+        address: (document.getElementById("finderAddress") || {}).value || "",
+        phone: (document.getElementById("finderPhone") || {}).value || "",
+        email: (document.getElementById("finderEmail") || {}).value || ""
+      };
+      var json = JSON.stringify(finder);
+      localStorage.setItem(FINDER_KEY, json);
+      dbg("[finder] Saved: " + json.substring(0, 50));
+      
+      // Verify
+      var verify = localStorage.getItem(FINDER_KEY);
+      dbg("[finder] Verified: " + (verify === json ? "OK" : "MISMATCH"));
+    } catch(e) {
+      dbg("[finder] Save error: " + e.message);
+    }
+  }
+  
+  function prefillFinder() {
+    var finder = loadFinder();
+    if (!finder) {
+      dbg("[finder] Nothing to prefill");
+      return;
+    }
+    dbg("[finder] Prefilling: " + finder.name);
+    var fields = [
+      ["finderName", finder.name],
+      ["finderAddress", finder.address],
+      ["finderPhone", finder.phone],
+      ["finderEmail", finder.email]
+    ];
+    for (var i = 0; i < fields.length; i++) {
+      var el = document.getElementById(fields[i][0]);
+      if (el && fields[i][1]) {
+        el.value = fields[i][1];
+        dbg("[finder] Set " + fields[i][0]);
+      }
+    }
+  }
+  
+  function setupAutoSave() {
+    var ids = ["finderName", "finderAddress", "finderPhone", "finderEmail"];
+    for (var i = 0; i < ids.length; i++) {
+      var el = document.getElementById(ids[i]);
+      if (el) {
+        el.addEventListener("blur", saveFinder);
+        el.addEventListener("change", saveFinder);
+      }
+    }
+    dbg("[finder] Auto-save listeners attached");
+  }
+  
+  function initFinder() {
+    dbg("[finder] Init starting");
+    prefillFinder();
+    setupAutoSave();
+    dbg("[finder] Init complete");
+  }
+  
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initFinder);
+  } else {
+    initFinder();
+  }
+  
+  dbg("[finder] Inline script done");
+})();
+</script>
+
 <script src="export.js" onerror="window.dbg && window.dbg('export.js load FAILED')"></script>
 <script>
 window.dbg && window.dbg("export.js loaded");
