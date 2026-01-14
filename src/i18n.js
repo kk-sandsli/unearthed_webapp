@@ -254,8 +254,16 @@
   }
 
   function initLanguage() {
-    var saved = localStorage.getItem(STORAGE_KEY) || "no";
-    setLanguage(saved);
+    var dbg = window.dbg || function(){};
+    dbg("[i18n] initLanguage called");
+    try {
+      var saved = localStorage.getItem(STORAGE_KEY) || "no";
+      dbg("[i18n] lang: " + saved);
+      setLanguage(saved);
+      dbg("[i18n] initLanguage done");
+    } catch(e) {
+      dbg("[i18n] initLanguage ERROR: " + e.message);
+    }
   }
 
   // expose

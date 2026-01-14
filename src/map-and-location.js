@@ -268,16 +268,18 @@
   var mapInitialized = false;
   
   function initMapAndLocation() {
-    log("initMapAndLocation called");
+    var dbg = window.dbg || function(){};
+    dbg("[initMap] called");
     
-    if (mapInitialized) {
-      log("Already initialized, skipping");
-      return;
-    }
-    
-    var mapEl = document.getElementById("map");
-    log("mapEl: " + (mapEl ? "found" : "NOT FOUND"));
-    log("L: " + (typeof global.L));
+    try {
+      if (mapInitialized) {
+        dbg("[initMap] Already initialized");
+        return;
+      }
+      
+      var mapEl = document.getElementById("map");
+      dbg("[initMap] mapEl: " + (mapEl ? "found" : "NOT FOUND"));
+      dbg("[initMap] L: " + (typeof global.L));
     
     if (!mapEl || !global.L) {
       log("Leaflet or #map missing – skipping map init.");
@@ -318,15 +320,20 @@
         function(pos) {
           var lat = pos.coords.latitude;
           var lon = pos.coords.longitude;
-          log("Geolocation success: " + lat.toFixed(4) + ", " + lon.toFixed(4));
+          dbg("[initMap] Geolocation: " + lat.toFixed(4) + ", " + lon.toFixed(4));
           map.setView([lat, lon], 15);
           setMarker(lat, lon);
           updateLocationField(lat, lon);
         },
         function(err) {
-          log("Geolocation failed: " + err.message);
+          dbg("[initMap] Geolocation err: " + err.message);
         }
       );
+    }
+    
+    dbg("[initMap] done");
+    } catch(e) {
+      dbg("[initMap] ERROR: " + e.message);
     }
   }
 

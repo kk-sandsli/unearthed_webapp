@@ -66,23 +66,28 @@
 
   // Pre-fill finder fields on page load
   function prefillFinderFields() {
-    dbgLog("prefillFinderFields called");
-    var finder = loadFinderInfo();
-    if (!finder) {
-      dbgLog("No finder info to prefill");
-      return;
-    }
-
-    dbgLog("Prefilling with: " + finder.name);
-    var fieldIds = ["finderName", "finderAddress", "finderPhone", "finderEmail"];
-    var fieldValues = [finder.name, finder.address, finder.phone, finder.email];
-
-    for (var i = 0; i < fieldIds.length; i++) {
-      var el = document.getElementById(fieldIds[i]);
-      if (el && fieldValues[i]) {
-        el.value = fieldValues[i];
-        dbgLog("Set " + fieldIds[i] + " = " + fieldValues[i]);
+    var dbg = window.dbg || function(){};
+    dbg("[export] prefillFinderFields called");
+    try {
+      var finder = loadFinderInfo();
+      if (!finder) {
+        dbg("[export] No finder info");
+        return;
       }
+
+      dbg("[export] Prefilling: " + finder.name);
+      var fieldIds = ["finderName", "finderAddress", "finderPhone", "finderEmail"];
+      var fieldValues = [finder.name, finder.address, finder.phone, finder.email];
+
+      for (var i = 0; i < fieldIds.length; i++) {
+        var el = document.getElementById(fieldIds[i]);
+        if (el && fieldValues[i]) {
+          el.value = fieldValues[i];
+          dbg("[export] Set " + fieldIds[i] + " = " + fieldValues[i]);
+        }
+      }
+    } catch (e) {
+      dbg("[export] prefillFinderFields error: " + e.message);
     }
   }
 
