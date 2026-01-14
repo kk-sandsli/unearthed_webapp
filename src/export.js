@@ -669,6 +669,19 @@ try { window.dbg && window.dbg("export.js FILE START"); } catch(e) {}
       .then(function(ctx) {
         dbg("[export] Updating form appearances");
         ctx.form.updateFieldAppearances();
+        
+        // Set NeedsAppearances flag for better cross-viewer compatibility
+        // This tells PDF viewers to regenerate field appearances on open
+        try {
+          var acroForm = ctx.pdfDoc.catalog.lookup(global.PDFLib.PDFName.of("AcroForm"));
+          if (acroForm) {
+            acroForm.set(global.PDFLib.PDFName.of("NeedAppearances"), global.PDFLib.PDFBool.True);
+            dbg("[export] Set NeedAppearances flag");
+          }
+        } catch(e) {
+          dbg("[export] Could not set NeedAppearances: " + e.message);
+        }
+        
         return ctx.pdfDoc.save();
       })
       .then(function(pdfBytes) {
