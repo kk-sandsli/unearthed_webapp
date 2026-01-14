@@ -2,9 +2,12 @@
 // fill official form + summary pages + multiple photos (half page each)
 // summary is localized based on localStorage("unearthed-lang")
 
+// Immediate test - before anything else
+try { window.dbg && window.dbg("export.js FILE START"); } catch(e) {}
+
 (function (global) {
   try {
-  if (typeof window.dbg === "function") window.dbg("export.js IIFE running");
+  window.dbg && window.dbg("export.js IIFE running");
   
   var PDF_TEMPLATE_URL = "/unearthed/Funnskjema-unlocked.pdf";
   var PDF_LIB_URL = "https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js";
@@ -142,7 +145,7 @@
     "skog": "Check Box5",
     "fjell": "Check Box6",
     "strand": "Check Box7",
-    "vann": "Check Box10",
+    "vann": "Check Box10"
   };
 
   // localized summary labels
@@ -162,7 +165,7 @@
       ownerEmail: "Owner email",
       notes: "Notes",
       photo: "Photo",
-      page: "Page",
+      page: "Page"
     },
     no: {
       title: "Funn – sammendrag",
@@ -179,7 +182,7 @@
       ownerEmail: "Grunneier e-post",
       notes: "Notater",
       photo: "Foto",
-      page: "Side",
+      page: "Side"
     },
     es: {
       title: "Hallazgo – resumen",
@@ -196,8 +199,8 @@
       ownerEmail: "Correo del propietario",
       notes: "Notas",
       photo: "Foto",
-      page: "Página",
-    },
+      page: "Página"
+    }
   };
 
   function $(id) {
