@@ -63,6 +63,13 @@
       cbEmailFinder: "Send copy (data + PDF) to finder",
       cbEmailOwner: "Send copy (data + PDF) to land owner",
       emailHint: "Note: to actually send these emails you need a small server-side endpoint.",
+      locationSaved: "Location saved ✔",
+      labelKommune: "Municipality",
+      phKommune: "Auto-filled from GPS",
+      labelGnr: "Farm no. (Gnr)",
+      phGnr: "Auto-filled from GPS",
+      labelBnr: "Holding no. (Bnr)",
+      phBnr: "Auto-filled from GPS",
     },
     no: {
       appName: "Unearthed",
@@ -124,6 +131,13 @@
       cbEmailFinder: "Send kopi (data + PDF) til finner",
       cbEmailOwner: "Send kopi (data + PDF) til grunneier",
       emailHint: "NB: For å sende e-post må vi ha et endepunkt på serveren.",
+      locationSaved: "Posisjon lagret ✔",
+      labelKommune: "Kommune",
+      phKommune: "Hentes fra GPS",
+      labelGnr: "Gårdsnummer (Gnr)",
+      phGnr: "Hentes fra GPS",
+      labelBnr: "Bruksnummer (Bnr)",
+      phBnr: "Hentes fra GPS",
     },
     es: {
       appName: "Unearthed",
@@ -185,6 +199,13 @@
       cbEmailFinder: "Enviar copia (datos + PDF) al descubridor",
       cbEmailOwner: "Enviar copia (datos + PDF) al propietario",
       emailHint: "Nota: para enviar correos hace falta un endpoint en el servidor.",
+      locationSaved: "Ubicación guardada ✔",
+      labelKommune: "Municipio",
+      phKommune: "Se rellena desde GPS",
+      labelGnr: "Nº de finca (Gnr)",
+      phGnr: "Se rellena desde GPS",
+      labelBnr: "Nº de parcela (Bnr)",
+      phBnr: "Se rellena desde GPS",
     },
   };
 
@@ -226,12 +247,18 @@
   }
 
   function initLanguage() {
-    const saved = localStorage.getItem(STORAGE_KEY) || "en";
+    const saved = localStorage.getItem(STORAGE_KEY) || "no";
     setLanguage(saved);
   }
 
   // expose
   global.setLanguage = setLanguage;
+
+  // Expose translations for other modules
+  global.AppI18n = {
+    setLanguage,
+    translations: MESSAGES,
+  };
 
   document.addEventListener("DOMContentLoaded", initLanguage);
 })(window);

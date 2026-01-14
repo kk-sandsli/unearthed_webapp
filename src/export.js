@@ -6,6 +6,47 @@
   const PDF_TEMPLATE_URL = "/unearthed/Funnskjema-unlocked.pdf";
   const PDF_LIB_URL = "https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js";
   const LANG_STORAGE_KEY = "unearthed-lang";
+  const FINDER_STORAGE_KEY = "unearthed-finder";
+
+  // Save finder info to localStorage
+  function saveFinderInfo(finder) {
+    try {
+      localStorage.setItem(FINDER_STORAGE_KEY, JSON.stringify(finder));
+    } catch (e) {
+      console.warn("Could not save finder info:", e);
+    }
+  }
+
+  // Load finder info from localStorage
+  function loadFinderInfo() {
+    try {
+      const stored = localStorage.getItem(FINDER_STORAGE_KEY);
+      return stored ? JSON.parse(stored) : null;
+    } catch (e) {
+      console.warn("Could not load finder info:", e);
+      return null;
+    }
+  }
+
+  // Pre-fill finder fields on page load
+  function prefillFinderFields() {
+    const finder = loadFinderInfo();
+    if (!finder) return;
+
+    const fields = {
+      finderName: finder.name,
+      finderAddress: finder.address,
+      finderPhone: finder.phone,
+      finderEmail: finder.email,
+    };
+
+    for (const [id, value] of Object.entries(fields)) {
+      const el = document.getElementById(id);
+      if (el && value) {
+        el.value = value;
+      }
+    }
+  }
 
   // exact arealtype -> checkbox names from your unlocked PDF  (we keep this) :contentReference[oaicite:0]{index=0}
   const AREALTYPE_TO_CHECKBOX = {
@@ -85,6 +126,32 @@
     return { lat: Number(m[1]), lon: Number(m[2]) };
   }
 
+  /**
+   * Fetch kommune and fylke info from Kartverket API based on coordinates.
+   * Returns { fylkesnavn, fylkesnummer, kommunenavn, kommunenummer } or null.
+   */
+  async function fetchKommuneInfo(lat, lon) {
+    try {
+      const params = new URLSearchParams({
+        nord: lat.toString(),
+        ost: lon.toString(),
+        koordsys: "4258", // ETRS89, compatible with WGS84
+      });
+      const response = await fetch(
+        `https://api.kartverket.no/kommuneinfo/v1/punkt?${params}`,
+        { headers: { accept: "application/json" } }
+      );
+      if (!response.ok) {
+        console.warn("Kartverket API request failed:", response.status);
+        return null;
+      }
+      return await response.json();
+    } catch (err) {
+      console.warn("Kartverket API lookup failed:", err);
+      return null;
+    }
+  }
+
   function readFileAsDataURL(file) {
     return new Promise((resolve, reject) => {
       const r = new FileReader();
@@ -125,6 +192,18 @@
     });
   }
 
+  // Helper function to safely check a checkbox with proper appearance
+  function safeCheckBox(form, fieldName) {
+    try {
+      const checkbox = form.getCheckBox(fieldName);
+      // Uncheck first to reset state, then check
+      checkbox.uncheck();
+      checkbox.check();
+    } catch (e) {
+      console.warn(`Could not check checkbox "${fieldName}":`, e);
+    }
+  }
+
   async function saveAsPDF() {
     try {
       await ensurePdfLib();
@@ -134,8 +213,8 @@
       const lang =
         localStorage.getItem(LANG_STORAGE_KEY) && SUMMARY_TEXT[localStorage.getItem(LANG_STORAGE_KEY)]
           ? localStorage.getItem(LANG_STORAGE_KEY)
-          : "en";
-      const L = SUMMARY_TEXT[lang] || SUMMARY_TEXT.en;
+          : "no";
+      const L = SUMMARY_TEXT[lang] || SUMMARY_TEXT.no;
 
       // 1. read DOM values
       const finder = {
@@ -144,11 +223,18 @@
         phone: $("finderPhone")?.value || "",
         email: $("finderEmail")?.value || "",
       };
+
+      // Save finder info for next visit
+      saveFinderInfo(finder);
+
       const owner = {
         name: $("ownerName")?.value || "",
         address: $("ownerAddress")?.value || "",
         phone: $("ownerPhone")?.value || "",
         email: $("ownerEmail")?.value || "",
+        kommune: $("ownerKommune")?.value || "",
+        gnr: $("ownerGnr")?.value || "",
+        bnr: $("ownerBnr")?.value || "",
       };
       const objName = $("objectName")?.value || "";
       const objType = $("objectType")?.value || "";
@@ -174,35 +260,58 @@
         throw new Error("Could not fetch " + PDF_TEMPLATE_URL);
       }
       const existingPdfBytes = await resp.arrayBuffer();
-      const pdfDoc = await PDFDocument.load(existingPdfBytes);
+      const pdfDoc = await PDFDocument.load(existingPdfBytes, {
+        ignoreEncryption: true,
+      });
 
       const form = pdfDoc.getForm();
 
-      // 4. fill main form (real names)  :contentReference[oaicite:1]{index=1}
+      // 4. fill main form (real names)
+      // Parse finder address into components: "Street 123, 5073 PLACE"
+      let finderStreet = "";
+      let finderPostnummer = "";
+      let finderSted = "";
+
+      if (finder.address) {
+        const commaIdx = finder.address.lastIndexOf(",");
+        if (commaIdx > -1) {
+          finderStreet = finder.address.substring(0, commaIdx).trim();
+          const postcodePlace = finder.address.substring(commaIdx + 1).trim();
+          // Split "5073 BERGEN" into postcode and place
+          const spaceIdx = postcodePlace.indexOf(" ");
+          if (spaceIdx > -1) {
+            finderPostnummer = postcodePlace.substring(0, spaceIdx).trim();
+            finderSted = postcodePlace.substring(spaceIdx + 1).trim();
+          } else {
+            // Might be just postcode or just place
+            if (/^\d+$/.test(postcodePlace)) {
+              finderPostnummer = postcodePlace;
+            } else {
+              finderSted = postcodePlace;
+            }
+          }
+        } else {
+          // No comma, just use as street
+          finderStreet = finder.address;
+        }
+      }
+
       form.getTextField("Navn finner").setText(finder.name);
-      form.getTextField("Adresse finner").setText(finder.address);
-      form.getTextField("Postnummer finner").setText("");
-      form.getTextField("Sted finner").setText("");
+      form.getTextField("Adresse finner").setText(finderStreet);
+      form.getTextField("Postnummer finner").setText(finderPostnummer);
+      form.getTextField("Sted finner").setText(finderSted);
       form.getTextField("Telefonnummer finner").setText(finder.phone);
       form.getTextField("E-post finner").setText(finder.email);
 
+      // Note: addressData is fetched later, owner address parsing happens after GPS section
       form.getTextField("Grunneier").setText(owner.name);
-      form.getTextField("Adresse grunneier").setText(owner.address);
-      form.getTextField("Postnummer grunneier").setText("");
-      form.getTextField("Sted grunneier").setText("");
       form.getTextField("Telefonnummer grunneier").setText(owner.phone);
       form.getTextField("E-post grunneier").setText(owner.email);
 
-      // permission
-      try {
-        if (owner.name) {
-          form
-            .getCheckBox(
-              "Grunneier har gitt tillatelse _y87rRhfj6A5hS8oITp7knw"
-            )
-            .check();
-        }
-      } catch (_) {}
+      // permission - only check if owner name is provided
+      if (owner.name && owner.name.trim() !== "") {
+        safeCheckBox(form, "Grunneier har gitt tillatelse _y87rRhfj6A5hS8oITp7knw");
+      }
 
       // object
       form.getTextField("Gjenstand").setText(objName);
@@ -224,6 +333,93 @@
       }
       form.getTextField("Datum/projeksjon").setText("WGS84 (EPSG:4326)");
 
+      // Fetch kommune/fylke info from Kartverket API (best-effort)
+      let kommuneInfo = null;
+      if (parsed) {
+        kommuneInfo = await fetchKommuneInfo(parsed.lat, parsed.lon);
+        if (kommuneInfo) {
+          console.log("Kartverket kommune info:", kommuneInfo);
+        }
+      }
+
+      // Fill Fylke field
+      if (kommuneInfo?.fylkesnavn) {
+        try {
+          form.getTextField("Fylke").setText(kommuneInfo.fylkesnavn);
+        } catch (e) {
+          console.warn("Could not set Fylke field:", e);
+        }
+      }
+
+      // Address data from Geonorge API (best-effort, may be null)
+      const addressData = global.AppMap?.getLastAddressData?.() || null;
+
+      // Parse owner address into components for PDF fields
+      // If we have API data, use it directly; otherwise try to parse the combined address
+      let ownerStreet = "";
+      let ownerPostnummer = "";
+      let ownerSted = "";
+
+      if (addressData) {
+        // Use raw API data (most reliable)
+        ownerStreet = addressData.adressetekst || "";
+        ownerPostnummer = addressData.postnummer || "";
+        ownerSted = addressData.poststed || "";
+      } else if (owner.address) {
+        // Try to parse combined address: "Street 123, 5073 PLACE"
+        const commaIdx = owner.address.lastIndexOf(",");
+        if (commaIdx > -1) {
+          ownerStreet = owner.address.substring(0, commaIdx).trim();
+          const postcodePlace = owner.address.substring(commaIdx + 1).trim();
+          // Split "5073 BERGEN" into postcode and place
+          const spaceIdx = postcodePlace.indexOf(" ");
+          if (spaceIdx > -1) {
+            ownerPostnummer = postcodePlace.substring(0, spaceIdx).trim();
+            ownerSted = postcodePlace.substring(spaceIdx + 1).trim();
+          } else {
+            // Might be just postcode or just place
+            if (/^\d+$/.test(postcodePlace)) {
+              ownerPostnummer = postcodePlace;
+            } else {
+              ownerSted = postcodePlace;
+            }
+          }
+        } else {
+          // No comma, just use as street
+          ownerStreet = owner.address;
+        }
+      }
+
+      // Fill owner address fields in PDF
+      form.getTextField("Adresse grunneier").setText(ownerStreet);
+      form.getTextField("Postnummer grunneier").setText(ownerPostnummer);
+      form.getTextField("Sted grunneier").setText(ownerSted);
+
+      // Address data - prefer form fields (user may have edited), fallback to API data
+      const kommune = owner.kommune || (addressData?.kommunenavn || "");
+      const gnr = owner.gnr || (addressData?.gardsnummer ? String(addressData.gardsnummer) : "");
+      const bnr = owner.bnr || (addressData?.bruksnummer ? String(addressData.bruksnummer) : "");
+
+      // Fill Kommune field
+      if (kommune) {
+        try {
+          form.getTextField("Kommune").setText(kommune);
+        } catch (e) {
+          console.warn("Could not set Kommune field:", e);
+        }
+      }
+
+      // Fill "Funnsted" field with gnr/bnr info
+      if (gnr || bnr) {
+        const gbnrText = gnr && bnr ? `${gnr}/${bnr}` : (gnr || bnr);
+        try {
+          form.getTextField("Funnsted").setText(gbnrText);
+          console.log(`Successfully set field "Funnsted" to "${gbnrText}"`);
+        } catch (e) {
+          console.warn("Could not set Funnsted field:", e);
+        }
+      }
+
       // date
       try {
         form
@@ -231,7 +427,7 @@
           .setText(new Date().toISOString().slice(0, 10));
       } catch (_) {}
 
-      // extra info – no arealtype/depth here (already handled)
+      // extra info – material, age, and notes only
       const extra = [];
       if (material) extra.push((L.material || "Material") + ": " + material);
       if (age) extra.push((L.age || "Age") + ": " + age);
@@ -239,11 +435,7 @@
       form.getTextField("Andre opplysninger").setText(extra.join("\n"));
 
       // Målemetode -> Mobiltelefon
-      try {
-        form.getCheckBox("Check Box12").check();
-      } catch (e) {
-        console.warn("Could not check Mobiltelefon:", e);
-      }
+      safeCheckBox(form, "Check Box12");
 
       // Arealtype
       if (arealtype) {
@@ -252,11 +444,7 @@
           AREALTYPE_TO_CHECKBOX[key] ||
           AREALTYPE_TO_CHECKBOX[key.replace("å", "a")];
         if (fieldName) {
-          try {
-            form.getCheckBox(fieldName).check();
-          } catch (e) {
-            console.warn("Could not check arealtype box:", arealtype, e);
-          }
+          safeCheckBox(form, fieldName);
         }
       }
 
@@ -443,12 +631,8 @@
     }
   }
 
-  document.addEventListener("DOMContentLoaded", () => {
-    ["finderName", "objectName", "location"].forEach((id) => {
-      const el = $(id);
-      if (el) el.required = true;
-    });
-  });
+  // Pre-fill finder fields when page loads
+  document.addEventListener("DOMContentLoaded", prefillFinderFields);
 
   // expose
   global.saveAsPDF = saveAsPDF;
