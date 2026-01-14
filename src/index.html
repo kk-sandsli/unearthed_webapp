@@ -369,6 +369,16 @@
 <!-- Debug Panel - MUST load before other scripts -->
 <script>
 (function() {
+  // Check for ?debug=1 in URL
+  var debugEnabled = /[?&]debug=1/.test(window.location.search);
+  
+  // Always define window.dbg as a no-op if debug is disabled
+  if (!debugEnabled) {
+    window.dbg = function() {};
+    return; // Exit early - no debug infrastructure
+  }
+  
+  // Debug mode enabled - create full infrastructure
   var debugLogs = [];
   var debugPanel = null;
   var debugBtn = null;
