@@ -295,14 +295,31 @@
   }
 
   // Helper function to safely check a checkbox with proper appearance
-  function safeCheckBox(form, fieldName) {
+  function safeCheckBox(form, fieldName, shouldCheck) {
+    var dbg = window.dbg || function(){};
+    // Default to checking if not specified
+    if (shouldCheck === undefined) shouldCheck = true;
     try {
       var checkbox = form.getCheckBox(fieldName);
-      // Uncheck first to reset state, then check
-      checkbox.uncheck();
-      checkbox.check();
+      if (shouldCheck) {
+        checkbox.check();
+        dbg("[export] Checked: " + fieldName);
+      } else {
+        checkbox.uncheck();
+        dbg("[export] Unchecked: " + fieldName);
+      }
     } catch (e) {
-      console.warn("Could not check checkbox " + fieldName + ":", e);
+      dbg("[export] Checkbox error " + fieldName + ": " + e.message);
+    }
+  }
+  
+  // Uncheck all arealtype checkboxes
+  function uncheckAllArealtype(form) {
+    var allCheckboxes = ["Check Box4", "Check Box5", "Check Box6", "Check Box7", "Check Box9", "Check Box10", "Check Box11", "Check Box12"];
+    for (var i = 0; i < allCheckboxes.length; i++) {
+      try {
+        form.getCheckBox(allCheckboxes[i]).uncheck();
+      } catch(e) {}
     }
   }
 
@@ -491,11 +508,17 @@
         var kommunePromise = parsed ? fetchKommuneInfo(parsed.lat, parsed.lon) : Promise.resolve(null);
         
         return kommunePromise.then(function(kommuneInfo) {
+          dbg("[export] kommuneInfo: " + (kommuneInfo ? JSON.stringify(kommuneInfo) : "null"));
+          
+          // Uncheck all checkboxes first to start fresh
+          uncheckAllArealtype(form);
+          
           if (kommuneInfo && kommuneInfo.fylkesnavn) {
             try {
               form.getTextField("Fylke").setText(kommuneInfo.fylkesnavn);
+              dbg("[export] Set Fylke: " + kommuneInfo.fylkesnavn);
             } catch (e) {
-              console.warn("Could not set Fylke field:", e);
+              dbg("[export] Could not set Fylke: " + e.message);
             }
           }
 
@@ -503,6 +526,10 @@
           var addressData = (global.AppMap && global.AppMap.getLastAddressData) 
             ? global.AppMap.getLastAddressData() 
             : null;
+          
+          dbg("[export] addressData: " + (addressData ? JSON.stringify(addressData).substring(0, 100) : "null"));
+          dbg("[export] owner.address: " + owner.address);
+          dbg("[export] owner.kommune: " + owner.kommune);
 
           // Parse owner address
           var ownerStreet = "";
@@ -534,19 +561,27 @@
             }
           }
 
+          dbg("[export] Owner parsed: street='" + ownerStreet + "' post='" + ownerPostnummer + "' sted='" + ownerSted + "'");
+          
           form.getTextField("Adresse grunneier").setText(ownerStreet);
           form.getTextField("Postnummer grunneier").setText(ownerPostnummer);
           form.getTextField("Sted grunneier").setText(ownerSted);
 
-          var kommune = owner.kommune || (addressData && addressData.kommunenavn ? addressData.kommunenavn : "");
+          // Kommune: prefer form field, then Kartverket API, then Geonorge API
+          var kommune = owner.kommune || 
+            (kommuneInfo && kommuneInfo.kommunenavn ? kommuneInfo.kommunenavn : "") ||
+            (addressData && addressData.kommunenavn ? addressData.kommunenavn : "");
           var gnr = owner.gnr || (addressData && addressData.gardsnummer ? String(addressData.gardsnummer) : "");
           var bnr = owner.bnr || (addressData && addressData.bruksnummer ? String(addressData.bruksnummer) : "");
+          
+          dbg("[export] Kommune: '" + kommune + "', gnr: '" + gnr + "', bnr: '" + bnr + "'");
 
           if (kommune) {
             try {
               form.getTextField("Kommune").setText(kommune);
+              dbg("[export] Set Kommune field");
             } catch (e) {
-              console.warn("Could not set Kommune field:", e);
+              dbg("[export] Could not set Kommune: " + e.message);
             }
           }
 
