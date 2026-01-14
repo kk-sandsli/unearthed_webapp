@@ -316,13 +316,46 @@ try { window.dbg && window.dbg("export.js FILE START"); } catch(e) {}
     }
   }
   
-  // Uncheck all arealtype checkboxes
-  function uncheckAllArealtype(form) {
-    var allCheckboxes = ["Check Box4", "Check Box5", "Check Box6", "Check Box7", "Check Box9", "Check Box10", "Check Box11", "Check Box12"];
-    for (var i = 0; i < allCheckboxes.length; i++) {
-      try {
-        form.getCheckBox(allCheckboxes[i]).uncheck();
-      } catch(e) {}
+  // Uncheck ALL checkboxes in the PDF form
+  function uncheckAllCheckboxes(form) {
+    var dbg = window.dbg || function(){};
+    try {
+      var fields = form.getFields();
+      var uncheckedCount = 0;
+      for (var i = 0; i < fields.length; i++) {
+        var field = fields[i];
+        try {
+          // Check if it's a checkbox by trying to call uncheck
+          if (field.constructor && field.constructor.name === "PDFCheckBox") {
+            field.uncheck();
+            uncheckedCount++;
+          }
+        } catch(e) {
+          // Try another way - check if getName contains "Check Box" or similar
+          try {
+            var name = field.getName();
+            // Try to get it as checkbox and uncheck
+            var cb = form.getCheckBox(name);
+            cb.uncheck();
+            uncheckedCount++;
+          } catch(e2) {}
+        }
+      }
+      dbg("[export] Unchecked " + uncheckedCount + " checkboxes");
+    } catch(e) {
+      dbg("[export] uncheckAllCheckboxes error: " + e.message);
+      // Fallback: uncheck known checkboxes manually
+      var knownCheckboxes = [
+        "Check Box1", "Check Box2", "Check Box3", "Check Box4", "Check Box5",
+        "Check Box6", "Check Box7", "Check Box8", "Check Box9", "Check Box10",
+        "Check Box11", "Check Box12", "Check Box13", "Check Box14", "Check Box15",
+        "Grunneier har gitt tillatelse _y87rRhfj6A5hS8oITp7knw"
+      ];
+      for (var j = 0; j < knownCheckboxes.length; j++) {
+        try {
+          form.getCheckBox(knownCheckboxes[j]).uncheck();
+        } catch(e3) {}
+      }
     }
   }
 
@@ -514,7 +547,7 @@ try { window.dbg && window.dbg("export.js FILE START"); } catch(e) {}
           dbg("[export] kommuneInfo: " + (kommuneInfo ? JSON.stringify(kommuneInfo) : "null"));
           
           // Uncheck all checkboxes first to start fresh
-          uncheckAllArealtype(form);
+          uncheckAllCheckboxes(form);
           
           if (kommuneInfo && kommuneInfo.fylkesnavn) {
             try {
