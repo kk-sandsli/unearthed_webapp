@@ -374,11 +374,13 @@
   }
 
   global.useCurrentLocation = useCurrentLocation;
-  global.AppMap = {
-    initMapAndLocation: initMapAndLocation,
-    useCurrentLocation: useCurrentLocation,
-    getLastLatLon: getLastLatLon,
-    getLastAddressData: getLastAddressData
-  };
+  
+  // Build AppMap object step by step for Safari compatibility
+  var appMapObj = {};
+  appMapObj.initMapAndLocation = initMapAndLocation;
+  appMapObj.useCurrentLocation = useCurrentLocation;
+  appMapObj.getLastLatLon = getLastLatLon;
+  appMapObj.getLastAddressData = getLastAddressData;
+  global.AppMap = appMapObj;
 })(window);
 

@@ -472,17 +472,21 @@ window.dbg && window.dbg("saveAsPDF exists: " + (typeof window.saveAsPDF !== "un
   // Add a test click handler to the map element directly
   if (mapEl) {
     mapEl.addEventListener("click", function(e) {
-      window.dbg && window.dbg("Raw click on #map div");
-      // Check if Leaflet map is attached
-      if (window.AppMap) {
-        var latlon = window.AppMap.getLastLatLon();
-        window.dbg && window.dbg("Last latlon: " + (latlon ? (latlon.lat + "," + latlon.lon) : "null"));
-        var addrData = window.AppMap.getLastAddressData();
-        window.dbg && window.dbg("Last addr data: " + (addrData ? JSON.stringify(addrData).substring(0,80) : "null"));
+      try {
+        window.dbg && window.dbg("Raw click on #map div");
+        // Check if Leaflet map is attached
+        if (window.AppMap) {
+          var latlon = window.AppMap.getLastLatLon ? window.AppMap.getLastLatLon() : null;
+          window.dbg && window.dbg("Last latlon: " + (latlon ? (latlon.lat + "," + latlon.lon) : "null"));
+          var addrData = window.AppMap.getLastAddressData ? window.AppMap.getLastAddressData() : null;
+          window.dbg && window.dbg("Last addr data: " + (addrData ? JSON.stringify(addrData).substring(0,80) : "null"));
+        }
+        // Check owner fields
+        var ownerAddr = document.getElementById("ownerAddress");
+        window.dbg && window.dbg("ownerAddress value: " + (ownerAddr ? ("'" + ownerAddr.value + "'") : "element not found"));
+      } catch(err) {
+        window.dbg && window.dbg("Click handler error: " + err.message);
       }
-      // Check owner fields
-      var ownerAddr = document.getElementById("ownerAddress");
-      window.dbg && window.dbg("ownerAddress value: " + (ownerAddr ? ownerAddr.value : "element not found"));
     });
   }
   
@@ -492,36 +496,33 @@ window.dbg && window.dbg("saveAsPDF exists: " + (typeof window.saveAsPDF !== "un
   
   // Delayed check to see map state after init
   setTimeout(function() {
-    window.dbg && window.dbg("=== Delayed map check ===");
-    if (window.AppMap) {
-      window.dbg && window.dbg("AppMap.getLastLatLon: " + (typeof window.AppMap.getLastLatLon));
-      var addrData = window.AppMap.getLastAddressData();
-      window.dbg && window.dbg("addressData after delay: " + (addrData ? "exists" : "null"));
-    }
-    // Check if Leaflet map container has the map
-    var mapDiv = document.getElementById("map");
-    if (mapDiv) {
-      window.dbg && window.dbg("map div classes: " + mapDiv.className);
-      window.dbg && window.dbg("map div children: " + mapDiv.children.length);
-    }
-    // Test XHR directly
-    window.dbg && window.dbg("=== Testing XHR directly ===");
     try {
+      window.dbg && window.dbg("=== Delayed check (3s) ===");
+      if (window.AppMap) {
+        window.dbg && window.dbg("AppMap keys: " + Object.keys(window.AppMap).join(", "));
+      }
+      // Check if Leaflet map container has the map
+      var mapDiv = document.getElementById("map");
+      if (mapDiv) {
+        window.dbg && window.dbg("map div classes: " + mapDiv.className);
+      }
+      // Test XHR directly
+      window.dbg && window.dbg("=== Testing XHR ===");
       var xhr = new XMLHttpRequest();
       xhr.open("GET", "https://ws.geonorge.no/adresser/v1/punktsok?lat=60.39&lon=5.32&radius=1000&treffPerSide=1", true);
       xhr.onload = function() {
-        window.dbg && window.dbg("XHR test onload: " + xhr.status);
+        window.dbg && window.dbg("XHR onload: " + xhr.status);
         if (xhr.status === 200) {
-          window.dbg && window.dbg("XHR response: " + xhr.responseText.substring(0, 100));
+          window.dbg && window.dbg("XHR OK: " + xhr.responseText.substring(0, 80));
         }
       };
       xhr.onerror = function() {
-        window.dbg && window.dbg("XHR test onerror");
+        window.dbg && window.dbg("XHR onerror");
       };
       xhr.send();
-      window.dbg && window.dbg("XHR test sent");
+      window.dbg && window.dbg("XHR sent");
     } catch(e) {
-      window.dbg && window.dbg("XHR test error: " + e.message);
+      window.dbg && window.dbg("Delayed check error: " + e.message);
     }
   }, 3000);
 })();
