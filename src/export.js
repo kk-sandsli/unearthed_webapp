@@ -68,10 +68,20 @@
   function prefillFinderFields() {
     var dbg = window.dbg || function(){};
     dbg("[export] prefillFinderFields called");
+    dbg("[export] localStorage available: " + isLocalStorageAvailable());
+    
+    // Debug: show what's in localStorage
+    try {
+      var rawStored = localStorage.getItem(FINDER_STORAGE_KEY);
+      dbg("[export] Raw localStorage value: " + (rawStored ? rawStored : "(empty)"));
+    } catch(e) {
+      dbg("[export] Cannot read localStorage: " + e.message);
+    }
+    
     try {
       var finder = loadFinderInfo();
       if (!finder) {
-        dbg("[export] No finder info");
+        dbg("[export] No finder info to prefill");
         return;
       }
 
@@ -86,9 +96,41 @@
           dbg("[export] Set " + fieldIds[i] + " = " + fieldValues[i]);
         }
       }
+      dbg("[export] Prefill complete");
     } catch (e) {
       dbg("[export] prefillFinderFields error: " + e.message);
     }
+  }
+  
+  // Auto-save finder info when fields change
+  function setupFinderAutoSave() {
+    var dbg = window.dbg || function(){};
+    var fieldIds = ["finderName", "finderAddress", "finderPhone", "finderEmail"];
+    
+    for (var i = 0; i < fieldIds.length; i++) {
+      var el = document.getElementById(fieldIds[i]);
+      if (el) {
+        el.addEventListener("blur", function() {
+          var finder = {
+            name: getVal("finderName"),
+            address: getVal("finderAddress"),
+            phone: getVal("finderPhone"),
+            email: getVal("finderEmail")
+          };
+          dbg("[export] Auto-saving finder: " + finder.name);
+          saveFinderInfo(finder);
+          
+          // Verify save worked
+          try {
+            var verify = localStorage.getItem(FINDER_STORAGE_KEY);
+            dbg("[export] Verify after save: " + (verify ? verify.substring(0, 40) : "(empty)"));
+          } catch(e) {
+            dbg("[export] Verify failed: " + e.message);
+          }
+        });
+      }
+    }
+    dbg("[export] Finder auto-save setup complete");
   }
 
   // exact arealtype -> checkbox names from your unlocked PDF
@@ -716,12 +758,17 @@
     }
   }
 
-  // Pre-fill finder fields when page loads
+  // Pre-fill finder fields when page loads and setup auto-save
   // Handle case where DOMContentLoaded already fired
+  function initFinderFields() {
+    prefillFinderFields();
+    setupFinderAutoSave();
+  }
+  
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", prefillFinderFields);
+    document.addEventListener("DOMContentLoaded", initFinderFields);
   } else {
-    setTimeout(prefillFinderFields, 0);
+    setTimeout(initFinderFields, 0);
   }
 
   // expose
