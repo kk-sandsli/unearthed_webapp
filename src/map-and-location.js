@@ -92,8 +92,9 @@
    * Uses XMLHttpRequest for better Safari compatibility.
    */
   function fetchAddressFromGeonorge(lat, lon, callback) {
-    log("fetchAddressFromGeonorge starting");
-    log("Coords: " + lat.toFixed(4) + ", " + lon.toFixed(4));
+    // Use window.dbg directly for Safari debugging
+    var dbg = window.dbg || function(){};
+    dbg("[fetch] starting for " + lat.toFixed(4) + ", " + lon.toFixed(4));
     
     var url = GEONORGE_API_URL + 
       "?lat=" + encodeURIComponent(lat) +
@@ -105,13 +106,14 @@
       "&side=0" +
       "&asciiKompatibel=true";
 
-    log("URL built, creating XHR");
+    dbg("[fetch] URL ready");
 
     var xhr;
     try {
       xhr = new XMLHttpRequest();
+      dbg("[fetch] XHR created");
     } catch (e) {
-      log("XHR create failed: " + e.message);
+      dbg("[fetch] XHR create error: " + e.message);
       callback(null);
       return;
     }
@@ -120,38 +122,31 @@
     function safeCallback(result) {
       if (callbackCalled) return;
       callbackCalled = true;
-      log("Calling callback with: " + (result ? "data" : "null"));
+      dbg("[fetch] callback with: " + (result ? "data" : "null"));
       callback(result);
     }
 
     try {
       xhr.open("GET", url, true);
-      log("XHR opened");
+      dbg("[fetch] XHR opened");
     } catch (e) {
-      log("XHR open failed: " + e.message);
+      dbg("[fetch] open error: " + e.message);
       safeCallback(null);
       return;
     }
     
-    // Note: Some Safari versions have issues with setRequestHeader
-    try {
-      xhr.setRequestHeader("Accept", "application/json");
-    } catch (e) {
-      log("setRequestHeader failed (continuing): " + e.message);
-    }
-
     xhr.onload = function() {
-      log("XHR onload, status: " + xhr.status);
+      dbg("[fetch] onload status: " + xhr.status);
       if (xhr.status >= 200 && xhr.status < 300) {
         try {
           var responseText = xhr.responseText;
-          log("Response length: " + responseText.length);
+          dbg("[fetch] response len: " + responseText.length);
           var data = JSON.parse(responseText);
-          log("Parsed OK, addresses: " + (data.adresser ? data.adresser.length : 0));
+          dbg("[fetch] addresses: " + (data.adresser ? data.adresser.length : 0));
           
           if (data.adresser && data.adresser.length > 0) {
             var addr = data.adresser[0];
-            log("Address: " + (addr.adressetekst || "(none)"));
+            dbg("[fetch] got: " + (addr.adressetekst || "(none)"));
             safeCallback({
               adressetekst: addr.adressetekst || "",
               kommunenavn: addr.kommunenavn || "",
@@ -163,26 +158,26 @@
               distanse: addr.meterDistanseTilPunkt || null
             });
           } else {
-            log("No addresses in response");
+            dbg("[fetch] no addresses");
             safeCallback(null);
           }
         } catch (e) {
-          log("Parse error: " + e.message);
+          dbg("[fetch] parse error: " + e.message);
           safeCallback(null);
         }
       } else {
-        log("HTTP error: " + xhr.status);
+        dbg("[fetch] HTTP error: " + xhr.status);
         safeCallback(null);
       }
     };
     
     xhr.onerror = function() {
-      log("XHR onerror event");
+      dbg("[fetch] onerror event");
       safeCallback(null);
     };
 
     xhr.ontimeout = function() {
-      log("XHR timeout");
+      dbg("[fetch] timeout");
       safeCallback(null);
     };
 
@@ -190,39 +185,42 @@
     try {
       xhr.timeout = 15000;
     } catch (e) {
-      log("timeout not supported");
+      // timeout not supported, ignore
     }
     
-    log("Sending XHR request");
+    dbg("[fetch] sending...");
     try {
       xhr.send();
-      log("XHR send() completed");
+      dbg("[fetch] send() done");
     } catch (e) {
-      log("XHR send error: " + e.message);
+      dbg("[fetch] send error: " + e.message);
       safeCallback(null);
     }
   }
 
   function updateLocationField(lat, lon) {
-    log("updateLocationField(" + lat.toFixed(4) + ", " + lon.toFixed(4) + ")");
+    var dbg = window.dbg || function(){};
+    dbg("[updateLoc] " + lat.toFixed(4) + ", " + lon.toFixed(4));
+    
     var input = document.getElementById("location");
     if (input) {
       input.value = formatLatLon(lat, lon);
-      log("Location field updated");
+      dbg("[updateLoc] location field set");
     } else {
-      log("ERROR: #location input not found!");
+      dbg("[updateLoc] ERROR: no #location");
     }
     lastLatLon = { lat: lat, lon: lon };
 
     // Fetch address data from Geonorge API (async, best-effort)
+    dbg("[updateLoc] calling fetchAddressFromGeonorge");
     fetchAddressFromGeonorge(lat, lon, function(addressData) {
-      log("fetchAddressFromGeonorge callback called");
+      dbg("[updateLoc] fetch callback, data: " + (addressData ? "yes" : "no"));
       lastAddressData = addressData;
       if (addressData) {
-        log("Address data received, updating fields");
+        dbg("[updateLoc] updating owner fields");
         updateOwnerFieldsFromAddress(addressData);
       } else {
-        log("No address data - clearing fields");
+        dbg("[updateLoc] clearing owner fields");
         clearOwnerFields();
       }
     });
