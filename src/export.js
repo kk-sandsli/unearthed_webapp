@@ -36,7 +36,7 @@ try { window.dbg && window.dbg("export.js FILE START"); } catch(e) {}
     }
   }
 
-  // Save finder info to localStorage
+  // Save finder info to localStorage (used during PDF export)
   function saveFinderInfo(finder) {
     if (!isLocalStorageAvailable()) {
       dbgLog("localStorage not available for save");
@@ -49,91 +49,6 @@ try { window.dbg && window.dbg("export.js FILE START"); } catch(e) {}
     } catch (e) {
       dbgLog("Save finder error: " + e.message);
     }
-  }
-
-  // Load finder info from localStorage
-  function loadFinderInfo() {
-    if (!isLocalStorageAvailable()) {
-      dbgLog("localStorage not available for load");
-      return null;
-    }
-    try {
-      var stored = localStorage.getItem(FINDER_STORAGE_KEY);
-      dbgLog("Loaded from storage: " + (stored ? stored.substring(0, 50) : "null"));
-      return stored ? JSON.parse(stored) : null;
-    } catch (e) {
-      dbgLog("Load finder error: " + e.message);
-      return null;
-    }
-  }
-
-  // Pre-fill finder fields on page load
-  function prefillFinderFields() {
-    var dbg = window.dbg || function(){};
-    dbg("[export] prefillFinderFields called");
-    dbg("[export] localStorage available: " + isLocalStorageAvailable());
-    
-    // Debug: show what's in localStorage
-    try {
-      var rawStored = localStorage.getItem(FINDER_STORAGE_KEY);
-      dbg("[export] Raw localStorage value: " + (rawStored ? rawStored : "(empty)"));
-    } catch(e) {
-      dbg("[export] Cannot read localStorage: " + e.message);
-    }
-    
-    try {
-      var finder = loadFinderInfo();
-      if (!finder) {
-        dbg("[export] No finder info to prefill");
-        return;
-      }
-
-      dbg("[export] Prefilling: " + finder.name);
-      var fieldIds = ["finderName", "finderAddress", "finderPhone", "finderEmail"];
-      var fieldValues = [finder.name, finder.address, finder.phone, finder.email];
-
-      for (var i = 0; i < fieldIds.length; i++) {
-        var el = document.getElementById(fieldIds[i]);
-        if (el && fieldValues[i]) {
-          el.value = fieldValues[i];
-          dbg("[export] Set " + fieldIds[i] + " = " + fieldValues[i]);
-        }
-      }
-      dbg("[export] Prefill complete");
-    } catch (e) {
-      dbg("[export] prefillFinderFields error: " + e.message);
-    }
-  }
-  
-  // Auto-save finder info when fields change
-  function setupFinderAutoSave() {
-    var dbg = window.dbg || function(){};
-    var fieldIds = ["finderName", "finderAddress", "finderPhone", "finderEmail"];
-    
-    for (var i = 0; i < fieldIds.length; i++) {
-      var el = document.getElementById(fieldIds[i]);
-      if (el) {
-        el.addEventListener("blur", function() {
-          var finder = {
-            name: getVal("finderName"),
-            address: getVal("finderAddress"),
-            phone: getVal("finderPhone"),
-            email: getVal("finderEmail")
-          };
-          dbg("[export] Auto-saving finder: " + finder.name);
-          saveFinderInfo(finder);
-          
-          // Verify save worked
-          try {
-            var verify = localStorage.getItem(FINDER_STORAGE_KEY);
-            dbg("[export] Verify after save: " + (verify ? verify.substring(0, 40) : "(empty)"));
-          } catch(e) {
-            dbg("[export] Verify failed: " + e.message);
-          }
-        });
-      }
-    }
-    dbg("[export] Finder auto-save setup complete");
   }
 
   // exact arealtype -> checkbox names from your unlocked PDF
@@ -792,19 +707,6 @@ try { window.dbg && window.dbg("export.js FILE START"); } catch(e) {}
         console.error("Could not create filled PDF:", err);
         alert("Could not create the filled PDF. See console for details.\n" + (err && err.message ? err.message : ""));
       });
-  }
-
-  // Pre-fill finder fields when page loads and setup auto-save
-  // Handle case where DOMContentLoaded already fired
-  function initFinderFields() {
-    prefillFinderFields();
-    setupFinderAutoSave();
-  }
-  
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", initFinderFields);
-  } else {
-    setTimeout(initFinderFields, 0);
   }
 
   // expose
