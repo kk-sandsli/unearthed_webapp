@@ -477,7 +477,12 @@ window.dbg && window.dbg("saveAsPDF exists: " + (typeof window.saveAsPDF !== "un
       if (window.AppMap) {
         var latlon = window.AppMap.getLastLatLon();
         window.dbg && window.dbg("Last latlon: " + (latlon ? (latlon.lat + "," + latlon.lon) : "null"));
+        var addrData = window.AppMap.getLastAddressData();
+        window.dbg && window.dbg("Last addr data: " + (addrData ? JSON.stringify(addrData).substring(0,80) : "null"));
       }
+      // Check owner fields
+      var ownerAddr = document.getElementById("ownerAddress");
+      window.dbg && window.dbg("ownerAddress value: " + (ownerAddr ? ownerAddr.value : "element not found"));
     });
   }
   
@@ -490,6 +495,8 @@ window.dbg && window.dbg("saveAsPDF exists: " + (typeof window.saveAsPDF !== "un
     window.dbg && window.dbg("=== Delayed map check ===");
     if (window.AppMap) {
       window.dbg && window.dbg("AppMap.getLastLatLon: " + (typeof window.AppMap.getLastLatLon));
+      var addrData = window.AppMap.getLastAddressData();
+      window.dbg && window.dbg("addressData after delay: " + (addrData ? "exists" : "null"));
     }
     // Check if Leaflet map container has the map
     var mapDiv = document.getElementById("map");
@@ -497,7 +504,26 @@ window.dbg && window.dbg("saveAsPDF exists: " + (typeof window.saveAsPDF !== "un
       window.dbg && window.dbg("map div classes: " + mapDiv.className);
       window.dbg && window.dbg("map div children: " + mapDiv.children.length);
     }
-  }, 2000);
+    // Test XHR directly
+    window.dbg && window.dbg("=== Testing XHR directly ===");
+    try {
+      var xhr = new XMLHttpRequest();
+      xhr.open("GET", "https://ws.geonorge.no/adresser/v1/punktsok?lat=60.39&lon=5.32&radius=1000&treffPerSide=1", true);
+      xhr.onload = function() {
+        window.dbg && window.dbg("XHR test onload: " + xhr.status);
+        if (xhr.status === 200) {
+          window.dbg && window.dbg("XHR response: " + xhr.responseText.substring(0, 100));
+        }
+      };
+      xhr.onerror = function() {
+        window.dbg && window.dbg("XHR test onerror");
+      };
+      xhr.send();
+      window.dbg && window.dbg("XHR test sent");
+    } catch(e) {
+      window.dbg && window.dbg("XHR test error: " + e.message);
+    }
+  }, 3000);
 })();
 </script>
 
