@@ -440,10 +440,47 @@
 <script>window.dbg && window.dbg("i18n.js loaded");</script>
 
 <script src="map-and-location.js" onerror="window.dbg && window.dbg('map-and-location.js load FAILED')"></script>
-<script>window.dbg && window.dbg("map-and-location.js loaded");</script>
+<script>
+window.dbg && window.dbg("map-and-location.js loaded");
+window.dbg && window.dbg("AppMap exists: " + (typeof window.AppMap !== "undefined"));
+window.dbg && window.dbg("useCurrentLocation exists: " + (typeof window.useCurrentLocation !== "undefined"));
+// Force init if it didn't run
+if (typeof window.AppMap !== "undefined" && typeof window.AppMap.initMapAndLocation === "function") {
+  window.dbg("Calling initMapAndLocation directly");
+  try {
+    window.AppMap.initMapAndLocation();
+  } catch(e) {
+    window.dbg("Init error: " + e.message);
+  }
+}
+</script>
 
 <script src="export.js" onerror="window.dbg && window.dbg('export.js load FAILED')"></script>
-<script>window.dbg && window.dbg("export.js loaded");</script>
+<script>
+window.dbg && window.dbg("export.js loaded");
+window.dbg && window.dbg("saveAsPDF exists: " + (typeof window.saveAsPDF !== "undefined"));
+</script>
+
+<!-- Test map interaction inline -->
+<script>
+(function() {
+  window.dbg && window.dbg("Checking map status...");
+  var mapEl = document.getElementById("map");
+  window.dbg && window.dbg("map element: " + (mapEl ? "found" : "NOT FOUND"));
+  window.dbg && window.dbg("L (Leaflet): " + (typeof L));
+  
+  // Add a test click handler to the map element directly
+  if (mapEl) {
+    mapEl.addEventListener("click", function(e) {
+      window.dbg && window.dbg("Raw click on #map div");
+    });
+  }
+  
+  // Add test for location button
+  var locBtn = document.querySelector('button[onclick*="useCurrentLocation"]');
+  window.dbg && window.dbg("Location button: " + (locBtn ? "found" : "NOT FOUND"));
+})();
+</script>
 
 <!-- Language dropdown behavior -->
 <script>
