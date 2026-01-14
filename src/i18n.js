@@ -1,8 +1,8 @@
 // i18n.js
 (function (global) {
-  const STORAGE_KEY = "unearthed-lang";
+  var STORAGE_KEY = "unearthed-lang";
 
-  const MESSAGES = {
+  var MESSAGES = {
     en: {
       appName: "Unearthed",
       appTagline: "Find reporting for detectorists - A prototype webapp by Kodeklubben Sandsli",
@@ -210,30 +210,34 @@
   };
 
   function applyTranslations(lang) {
-    const dict = MESSAGES[lang] || MESSAGES.en;
+    var dict = MESSAGES[lang] || MESSAGES.en;
 
     // elements that just need text
-    document.querySelectorAll("[data-i18n]").forEach((el) => {
-      const key = el.getAttribute("data-i18n");
-      if (!key) return;
-      const text = dict[key];
+    var i18nEls = document.querySelectorAll("[data-i18n]");
+    for (var i = 0; i < i18nEls.length; i++) {
+      var el = i18nEls[i];
+      var key = el.getAttribute("data-i18n");
+      if (!key) continue;
+      var text = dict[key];
       if (typeof text === "string") {
         el.textContent = text;
       }
-    });
+    }
 
     // placeholders
-    document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
-      const key = el.getAttribute("data-i18n-placeholder");
-      if (!key) return;
-      const text = dict[key];
-      if (typeof text === "string") {
-        el.placeholder = text;
+    var phEls = document.querySelectorAll("[data-i18n-placeholder]");
+    for (var j = 0; j < phEls.length; j++) {
+      var phEl = phEls[j];
+      var phKey = phEl.getAttribute("data-i18n-placeholder");
+      if (!phKey) continue;
+      var phText = dict[phKey];
+      if (typeof phText === "string") {
+        phEl.placeholder = phText;
       }
-    });
+    }
 
     // top-right label
-    const label = document.getElementById("langLabel");
+    var label = document.getElementById("langLabel");
     if (label) label.textContent = (lang || "en").toUpperCase();
 
     // set html lang
@@ -247,7 +251,7 @@
   }
 
   function initLanguage() {
-    const saved = localStorage.getItem(STORAGE_KEY) || "no";
+    var saved = localStorage.getItem(STORAGE_KEY) || "no";
     setLanguage(saved);
   }
 
@@ -256,7 +260,7 @@
 
   // Expose translations for other modules
   global.AppI18n = {
-    setLanguage,
+    setLanguage: setLanguage,
     translations: MESSAGES,
   };
 

@@ -3,10 +3,10 @@
 // summary is localized based on localStorage("unearthed-lang")
 
 (function (global) {
-  const PDF_TEMPLATE_URL = "/unearthed/Funnskjema-unlocked.pdf";
-  const PDF_LIB_URL = "https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js";
-  const LANG_STORAGE_KEY = "unearthed-lang";
-  const FINDER_STORAGE_KEY = "unearthed-finder";
+  var PDF_TEMPLATE_URL = "/unearthed/Funnskjema-unlocked.pdf";
+  var PDF_LIB_URL = "https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js";
+  var LANG_STORAGE_KEY = "unearthed-lang";
+  var FINDER_STORAGE_KEY = "unearthed-finder";
 
   // Save finder info to localStorage
   function saveFinderInfo(finder) {
@@ -20,7 +20,7 @@
   // Load finder info from localStorage
   function loadFinderInfo() {
     try {
-      const stored = localStorage.getItem(FINDER_STORAGE_KEY);
+      var stored = localStorage.getItem(FINDER_STORAGE_KEY);
       return stored ? JSON.parse(stored) : null;
     } catch (e) {
       console.warn("Could not load finder info:", e);
@@ -30,26 +30,22 @@
 
   // Pre-fill finder fields on page load
   function prefillFinderFields() {
-    const finder = loadFinderInfo();
+    var finder = loadFinderInfo();
     if (!finder) return;
 
-    const fields = {
-      finderName: finder.name,
-      finderAddress: finder.address,
-      finderPhone: finder.phone,
-      finderEmail: finder.email,
-    };
+    var fieldIds = ["finderName", "finderAddress", "finderPhone", "finderEmail"];
+    var fieldValues = [finder.name, finder.address, finder.phone, finder.email];
 
-    for (const [id, value] of Object.entries(fields)) {
-      const el = document.getElementById(id);
-      if (el && value) {
-        el.value = value;
+    for (var i = 0; i < fieldIds.length; i++) {
+      var el = document.getElementById(fieldIds[i]);
+      if (el && fieldValues[i]) {
+        el.value = fieldValues[i];
       }
     }
   }
 
-  // exact arealtype -> checkbox names from your unlocked PDF  (we keep this) :contentReference[oaicite:0]{index=0}
-  const AREALTYPE_TO_CHECKBOX = {
+  // exact arealtype -> checkbox names from your unlocked PDF
+  var AREALTYPE_TO_CHECKBOX = {
     "åker": "Check Box9",
     "aker": "Check Box9",
     "beite": "Check Box4",
@@ -61,7 +57,7 @@
   };
 
   // localized summary labels
-  const SUMMARY_TEXT = {
+  var SUMMARY_TEXT = {
     en: {
       title: "Find – summary",
       object: "Object",
@@ -121,52 +117,69 @@
 
   function parseLatLon(str) {
     if (!str) return null;
-    const m = /Lat:\s*([-0-9.]+)\s*,\s*Lon:\s*([-0-9.]+)/i.exec(str);
+    var m = /Lat:\s*([-0-9.]+)\s*,\s*Lon:\s*([-0-9.]+)/i.exec(str);
     if (!m) return null;
     return { lat: Number(m[1]), lon: Number(m[2]) };
   }
 
   /**
    * Fetch kommune and fylke info from Kartverket API based on coordinates.
-   * Returns { fylkesnavn, fylkesnummer, kommunenavn, kommunenummer } or null.
+   * Returns Promise resolving to { fylkesnavn, fylkesnummer, kommunenavn, kommunenummer } or null.
    */
-  async function fetchKommuneInfo(lat, lon) {
-    try {
-      const params = new URLSearchParams({
-        nord: lat.toString(),
-        ost: lon.toString(),
-        koordsys: "4258", // ETRS89, compatible with WGS84
-      });
-      const response = await fetch(
-        `https://api.kartverket.no/kommuneinfo/v1/punkt?${params}`,
-        { headers: { accept: "application/json" } }
-      );
-      if (!response.ok) {
-        console.warn("Kartverket API request failed:", response.status);
-        return null;
+  function fetchKommuneInfo(lat, lon) {
+    return new Promise(function(resolve) {
+      try {
+        var url = "https://api.kartverket.no/kommuneinfo/v1/punkt?" +
+          "nord=" + encodeURIComponent(lat) + 
+          "&ost=" + encodeURIComponent(lon) + 
+          "&koordsys=4258";
+        
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", url, true);
+        xhr.setRequestHeader("Accept", "application/json");
+        xhr.onreadystatechange = function() {
+          if (xhr.readyState === 4) {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              try {
+                var data = JSON.parse(xhr.responseText);
+                resolve(data);
+              } catch (e) {
+                console.warn("Kartverket API parse error:", e);
+                resolve(null);
+              }
+            } else {
+              console.warn("Kartverket API request failed:", xhr.status);
+              resolve(null);
+            }
+          }
+        };
+        xhr.onerror = function() {
+          console.warn("Kartverket API network error");
+          resolve(null);
+        };
+        xhr.send();
+      } catch (err) {
+        console.warn("Kartverket API lookup failed:", err);
+        resolve(null);
       }
-      return await response.json();
-    } catch (err) {
-      console.warn("Kartverket API lookup failed:", err);
-      return null;
-    }
+    });
   }
 
   function readFileAsDataURL(file) {
-    return new Promise((resolve, reject) => {
-      const r = new FileReader();
-      r.onload = () => resolve(r.result);
+    return new Promise(function(resolve, reject) {
+      var r = new FileReader();
+      r.onload = function() { resolve(r.result); };
       r.onerror = reject;
       r.readAsDataURL(file);
     });
   }
 
   function dataURLToUint8Array(dataURL) {
-    const base64 = dataURL.split(",")[1];
-    const binary = atob(base64);
-    const len = binary.length;
-    const bytes = new Uint8Array(len);
-    for (let i = 0; i < len; i++) {
+    var base64 = dataURL.split(",")[1];
+    var binary = atob(base64);
+    var len = binary.length;
+    var bytes = new Uint8Array(len);
+    for (var i = 0; i < len; i++) {
       bytes[i] = binary.charCodeAt(i);
     }
     return bytes;
@@ -174,17 +187,17 @@
 
   // safe Uint8Array -> base64 (no spread → no RangeError)
   function bytesToBase64(bytes) {
-    let binary = "";
-    for (let i = 0; i < bytes.length; i++) {
+    var binary = "";
+    for (var i = 0; i < bytes.length; i++) {
       binary += String.fromCharCode(bytes[i]);
     }
     return btoa(binary);
   }
 
-  async function ensurePdfLib() {
-    if (global.PDFLib) return;
-    await new Promise((resolve, reject) => {
-      const s = document.createElement("script");
+  function ensurePdfLib() {
+    if (global.PDFLib) return Promise.resolve();
+    return new Promise(function(resolve, reject) {
+      var s = document.createElement("script");
       s.src = PDF_LIB_URL;
       s.onload = resolve;
       s.onerror = reject;
@@ -195,99 +208,117 @@
   // Helper function to safely check a checkbox with proper appearance
   function safeCheckBox(form, fieldName) {
     try {
-      const checkbox = form.getCheckBox(fieldName);
+      var checkbox = form.getCheckBox(fieldName);
       // Uncheck first to reset state, then check
       checkbox.uncheck();
       checkbox.check();
     } catch (e) {
-      console.warn(`Could not check checkbox "${fieldName}":`, e);
+      console.warn("Could not check checkbox " + fieldName + ":", e);
     }
+  }
+
+  // Helper to safely get element value
+  function getVal(id) {
+    var el = document.getElementById(id);
+    return el ? (el.value || "") : "";
+  }
+
+  function getChecked(id) {
+    var el = document.getElementById(id);
+    return el ? !!el.checked : false;
   }
 
   async function saveAsPDF() {
     try {
       await ensurePdfLib();
-      const { PDFDocument, rgb } = global.PDFLib;
+      var PDFDocument = global.PDFLib.PDFDocument;
+      var rgb = global.PDFLib.rgb;
 
       // current UI language
-      const lang =
-        localStorage.getItem(LANG_STORAGE_KEY) && SUMMARY_TEXT[localStorage.getItem(LANG_STORAGE_KEY)]
-          ? localStorage.getItem(LANG_STORAGE_KEY)
-          : "no";
-      const L = SUMMARY_TEXT[lang] || SUMMARY_TEXT.no;
+      var storedLang = localStorage.getItem(LANG_STORAGE_KEY);
+      var lang = (storedLang && SUMMARY_TEXT[storedLang]) ? storedLang : "no";
+      var L = SUMMARY_TEXT[lang] || SUMMARY_TEXT.no;
 
       // 1. read DOM values
-      const finder = {
-        name: $("finderName")?.value || "",
-        address: $("finderAddress")?.value || "",
-        phone: $("finderPhone")?.value || "",
-        email: $("finderEmail")?.value || "",
+      var finder = {
+        name: getVal("finderName"),
+        address: getVal("finderAddress"),
+        phone: getVal("finderPhone"),
+        email: getVal("finderEmail"),
       };
 
       // Save finder info for next visit
       saveFinderInfo(finder);
 
-      const owner = {
-        name: $("ownerName")?.value || "",
-        address: $("ownerAddress")?.value || "",
-        phone: $("ownerPhone")?.value || "",
-        email: $("ownerEmail")?.value || "",
-        kommune: $("ownerKommune")?.value || "",
-        gnr: $("ownerGnr")?.value || "",
-        bnr: $("ownerBnr")?.value || "",
+      var owner = {
+        name: getVal("ownerName"),
+        address: getVal("ownerAddress"),
+        phone: getVal("ownerPhone"),
+        email: getVal("ownerEmail"),
+        kommune: getVal("ownerKommune"),
+        gnr: getVal("ownerGnr"),
+        bnr: getVal("ownerBnr"),
       };
-      const objName = $("objectName")?.value || "";
-      const objType = $("objectType")?.value || "";
-      const material = $("material")?.value || "";
-      const age = $("age")?.value || "";
-      const arealtype = $("arealtype")?.value || "";
-      const depth = $("findDepth")?.value || "";
-      const locationStr = $("location")?.value || "";
-      const notes = $("notes")?.value || "";
-      const emailFinder = $("emailFinder")?.checked || false;
-      const emailOwner = $("emailOwner")?.checked || false;
+      var objName = getVal("objectName");
+      var objType = getVal("objectType");
+      var material = getVal("material");
+      var age = getVal("age");
+      var arealtype = getVal("arealtype");
+      var depth = getVal("findDepth");
+      var locationStr = getVal("location");
+      var notes = getVal("notes");
+      var emailFinder = getChecked("emailFinder");
+      var emailOwner = getChecked("emailOwner");
 
       // 2. read ALL photos (now multiple)
-      const photoInput = $("photo");
-      const photoFiles = photoInput?.files ? Array.from(photoInput.files) : [];
-      const photoDataURLs = await Promise.all(
-        photoFiles.map((file) => readFileAsDataURL(file))
-      );
+      var photoInput = $("photo");
+      var photoFiles = [];
+      if (photoInput && photoInput.files) {
+        for (var pf = 0; pf < photoInput.files.length; pf++) {
+          photoFiles.push(photoInput.files[pf]);
+        }
+      }
+      
+      var photoPromises = [];
+      for (var pi = 0; pi < photoFiles.length; pi++) {
+        photoPromises.push(readFileAsDataURL(photoFiles[pi]));
+      }
+      var photoDataURLs = await Promise.all(photoPromises);
 
       // 3. load PDF template
-      const resp = await fetch(PDF_TEMPLATE_URL);
+      var resp = await fetch(PDF_TEMPLATE_URL);
       if (!resp.ok) {
         throw new Error("Could not fetch " + PDF_TEMPLATE_URL);
       }
-      const existingPdfBytes = await resp.arrayBuffer();
-      const pdfDoc = await PDFDocument.load(existingPdfBytes, {
+      var existingPdfBytes = await resp.arrayBuffer();
+      var pdfDoc = await PDFDocument.load(existingPdfBytes, {
         ignoreEncryption: true,
       });
 
-      const form = pdfDoc.getForm();
+      var form = pdfDoc.getForm();
 
       // 4. fill main form (real names)
       // Parse finder address into components: "Street 123, 5073 PLACE"
-      let finderStreet = "";
-      let finderPostnummer = "";
-      let finderSted = "";
+      var finderStreet = "";
+      var finderPostnummer = "";
+      var finderSted = "";
 
       if (finder.address) {
-        const commaIdx = finder.address.lastIndexOf(",");
-        if (commaIdx > -1) {
-          finderStreet = finder.address.substring(0, commaIdx).trim();
-          const postcodePlace = finder.address.substring(commaIdx + 1).trim();
+        var fcommaIdx = finder.address.lastIndexOf(",");
+        if (fcommaIdx > -1) {
+          finderStreet = finder.address.substring(0, fcommaIdx).trim();
+          var fpostcodePlace = finder.address.substring(fcommaIdx + 1).trim();
           // Split "5073 BERGEN" into postcode and place
-          const spaceIdx = postcodePlace.indexOf(" ");
-          if (spaceIdx > -1) {
-            finderPostnummer = postcodePlace.substring(0, spaceIdx).trim();
-            finderSted = postcodePlace.substring(spaceIdx + 1).trim();
+          var fspaceIdx = fpostcodePlace.indexOf(" ");
+          if (fspaceIdx > -1) {
+            finderPostnummer = fpostcodePlace.substring(0, fspaceIdx).trim();
+            finderSted = fpostcodePlace.substring(fspaceIdx + 1).trim();
           } else {
             // Might be just postcode or just place
-            if (/^\d+$/.test(postcodePlace)) {
-              finderPostnummer = postcodePlace;
+            if (/^\d+$/.test(fpostcodePlace)) {
+              finderPostnummer = fpostcodePlace;
             } else {
-              finderSted = postcodePlace;
+              finderSted = fpostcodePlace;
             }
           }
         } else {
@@ -326,7 +357,7 @@
       }
 
       // GPS
-      const parsed = parseLatLon(locationStr);
+      var parsed = parseLatLon(locationStr);
       if (parsed) {
         form.getTextField("GPS-nord").setText(parsed.lat.toFixed(6));
         form.getTextField("GPS-øst").setText(parsed.lon.toFixed(6));
@@ -334,7 +365,7 @@
       form.getTextField("Datum/projeksjon").setText("WGS84 (EPSG:4326)");
 
       // Fetch kommune/fylke info from Kartverket API (best-effort)
-      let kommuneInfo = null;
+      var kommuneInfo = null;
       if (parsed) {
         kommuneInfo = await fetchKommuneInfo(parsed.lat, parsed.lon);
         if (kommuneInfo) {
@@ -343,7 +374,7 @@
       }
 
       // Fill Fylke field
-      if (kommuneInfo?.fylkesnavn) {
+      if (kommuneInfo && kommuneInfo.fylkesnavn) {
         try {
           form.getTextField("Fylke").setText(kommuneInfo.fylkesnavn);
         } catch (e) {
@@ -352,13 +383,15 @@
       }
 
       // Address data from Geonorge API (best-effort, may be null)
-      const addressData = global.AppMap?.getLastAddressData?.() || null;
+      var addressData = (global.AppMap && global.AppMap.getLastAddressData) 
+        ? global.AppMap.getLastAddressData() 
+        : null;
 
       // Parse owner address into components for PDF fields
       // If we have API data, use it directly; otherwise try to parse the combined address
-      let ownerStreet = "";
-      let ownerPostnummer = "";
-      let ownerSted = "";
+      var ownerStreet = "";
+      var ownerPostnummer = "";
+      var ownerSted = "";
 
       if (addressData) {
         // Use raw API data (most reliable)
@@ -367,21 +400,21 @@
         ownerSted = addressData.poststed || "";
       } else if (owner.address) {
         // Try to parse combined address: "Street 123, 5073 PLACE"
-        const commaIdx = owner.address.lastIndexOf(",");
-        if (commaIdx > -1) {
-          ownerStreet = owner.address.substring(0, commaIdx).trim();
-          const postcodePlace = owner.address.substring(commaIdx + 1).trim();
+        var ocommaIdx = owner.address.lastIndexOf(",");
+        if (ocommaIdx > -1) {
+          ownerStreet = owner.address.substring(0, ocommaIdx).trim();
+          var opostcodePlace = owner.address.substring(ocommaIdx + 1).trim();
           // Split "5073 BERGEN" into postcode and place
-          const spaceIdx = postcodePlace.indexOf(" ");
-          if (spaceIdx > -1) {
-            ownerPostnummer = postcodePlace.substring(0, spaceIdx).trim();
-            ownerSted = postcodePlace.substring(spaceIdx + 1).trim();
+          var ospaceIdx = opostcodePlace.indexOf(" ");
+          if (ospaceIdx > -1) {
+            ownerPostnummer = opostcodePlace.substring(0, ospaceIdx).trim();
+            ownerSted = opostcodePlace.substring(ospaceIdx + 1).trim();
           } else {
             // Might be just postcode or just place
-            if (/^\d+$/.test(postcodePlace)) {
-              ownerPostnummer = postcodePlace;
+            if (/^\d+$/.test(opostcodePlace)) {
+              ownerPostnummer = opostcodePlace;
             } else {
-              ownerSted = postcodePlace;
+              ownerSted = opostcodePlace;
             }
           }
         } else {
@@ -396,9 +429,9 @@
       form.getTextField("Sted grunneier").setText(ownerSted);
 
       // Address data - prefer form fields (user may have edited), fallback to API data
-      const kommune = owner.kommune || (addressData?.kommunenavn || "");
-      const gnr = owner.gnr || (addressData?.gardsnummer ? String(addressData.gardsnummer) : "");
-      const bnr = owner.bnr || (addressData?.bruksnummer ? String(addressData.bruksnummer) : "");
+      var kommune = owner.kommune || (addressData && addressData.kommunenavn ? addressData.kommunenavn : "");
+      var gnr = owner.gnr || (addressData && addressData.gardsnummer ? String(addressData.gardsnummer) : "");
+      var bnr = owner.bnr || (addressData && addressData.bruksnummer ? String(addressData.bruksnummer) : "");
 
       // Fill Kommune field
       if (kommune) {
@@ -411,10 +444,10 @@
 
       // Fill "Funnsted" field with gnr/bnr info
       if (gnr || bnr) {
-        const gbnrText = gnr && bnr ? `${gnr}/${bnr}` : (gnr || bnr);
+        var gbnrText = (gnr && bnr) ? (gnr + "/" + bnr) : (gnr || bnr);
         try {
           form.getTextField("Funnsted").setText(gbnrText);
-          console.log(`Successfully set field "Funnsted" to "${gbnrText}"`);
+          console.log("Successfully set field Funnsted to " + gbnrText);
         } catch (e) {
           console.warn("Could not set Funnsted field:", e);
         }
@@ -428,7 +461,7 @@
       } catch (_) {}
 
       // extra info – material, age, and notes only
-      const extra = [];
+      var extra = [];
       if (material) extra.push((L.material || "Material") + ": " + material);
       if (age) extra.push((L.age || "Age") + ": " + age);
       if (notes) extra.push(notes);
@@ -439,35 +472,37 @@
 
       // Arealtype
       if (arealtype) {
-        const key = arealtype.trim().toLowerCase();
-        const fieldName =
-          AREALTYPE_TO_CHECKBOX[key] ||
-          AREALTYPE_TO_CHECKBOX[key.replace("å", "a")];
-        if (fieldName) {
-          safeCheckBox(form, fieldName);
+        var akey = arealtype.trim().toLowerCase();
+        var afieldName =
+          AREALTYPE_TO_CHECKBOX[akey] ||
+          AREALTYPE_TO_CHECKBOX[akey.replace("å", "a")];
+        if (afieldName) {
+          safeCheckBox(form, afieldName);
         }
       }
 
       // 5. first summary page (with big photo)
-      const summaryPage = pdfDoc.addPage([595.28, 841.89]); // A4 portrait
-      const { width, height } = summaryPage.getSize();
-      let y = height - 50;
-      const left = 40;
-      const line = 16;
+      var summaryPage = pdfDoc.addPage([595.28, 841.89]); // A4 portrait
+      var pageSize = summaryPage.getSize();
+      var width = pageSize.width;
+      var height = pageSize.height;
+      var y = height - 50;
+      var left = 40;
+      var lineHeight = 16;
 
       function drawLine(label, value) {
         summaryPage.drawText(label + ": " + (value || ""), {
           x: left,
-          y,
+          y: y,
           size: 11,
         });
-        y -= line;
+        y -= lineHeight;
       }
 
       // title
       summaryPage.drawText(L.title || "Find – summary", {
         x: left,
-        y,
+        y: y,
         size: 14,
         color: rgb(0.2, 0.2, 0.2),
       });
@@ -488,44 +523,45 @@
       // notes
       if (notes) {
         y -= 6;
-        summaryPage.drawText(L.notes + ":", { x: left, y, size: 11 });
-        y -= line;
-        const words = notes.split(/\s+/);
-        let lineText = "";
-        const maxChars = 85;
-        words.forEach((w) => {
-          const test = lineText + w + " ";
+        summaryPage.drawText(L.notes + ":", { x: left, y: y, size: 11 });
+        y -= lineHeight;
+        var words = notes.split(/\s+/);
+        var lineText = "";
+        var maxChars = 85;
+        for (var wi = 0; wi < words.length; wi++) {
+          var w = words[wi];
+          var test = lineText + w + " ";
           if (test.length > maxChars) {
-            summaryPage.drawText(lineText, { x: left, y, size: 10 });
+            summaryPage.drawText(lineText, { x: left, y: y, size: 10 });
             y -= 14;
             lineText = w + " ";
           } else {
             lineText = test;
           }
-        });
+        }
         if (lineText) {
-          summaryPage.drawText(lineText, { x: left, y, size: 10 });
+          summaryPage.drawText(lineText, { x: left, y: y, size: 10 });
           y -= 14;
         }
       }
 
       // BIG photo on FIRST summary page (about half page)
       if (photoDataURLs.length > 0) {
-        const firstPhoto = photoDataURLs[0];
-        const imgBytes = dataURLToUint8Array(firstPhoto);
-        let img;
+        var firstPhoto = photoDataURLs[0];
+        var imgBytes = dataURLToUint8Array(firstPhoto);
+        var img;
         if (firstPhoto.startsWith("data:image/png")) {
           img = await pdfDoc.embedPng(imgBytes);
         } else {
           img = await pdfDoc.embedJpg(imgBytes);
         }
         // target width ~ half page (a bit less than full width)
-        const targetWidth = width - 80; // 40 margins left/right
-        const factor = targetWidth / img.width;
-        const targetHeight = img.height * factor;
-        const imgX = left;
+        var targetWidth = width - 80; // 40 margins left/right
+        var factor = targetWidth / img.width;
+        var targetHeight = img.height * factor;
+        var imgX = left;
         // put image lower, so text stays top
-        const imgY = 80; // leave bottom margin
+        var imgY = 80; // leave bottom margin
         summaryPage.drawImage(img, {
           x: imgX,
           y: imgY,
@@ -543,36 +579,38 @@
 
       // OTHER photos → each gets its own page
       if (photoDataURLs.length > 1) {
-        for (let i = 1; i < photoDataURLs.length; i++) {
-          const pData = photoDataURLs[i];
-          const imgBytes = dataURLToUint8Array(pData);
-          const page = pdfDoc.addPage([595.28, 841.89]);
-          const { width: pw, height: ph } = page.getSize();
+        for (var photoIdx = 1; photoIdx < photoDataURLs.length; photoIdx++) {
+          var pData = photoDataURLs[photoIdx];
+          var pimgBytes = dataURLToUint8Array(pData);
+          var page = pdfDoc.addPage([595.28, 841.89]);
+          var psize = page.getSize();
+          var pw = psize.width;
+          var ph = psize.height;
 
-          let img;
+          var pimg;
           if (pData.startsWith("data:image/png")) {
-            img = await pdfDoc.embedPng(imgBytes);
+            pimg = await pdfDoc.embedPng(pimgBytes);
           } else {
-            img = await pdfDoc.embedJpg(imgBytes);
+            pimg = await pdfDoc.embedJpg(pimgBytes);
           }
 
           // half page (big)
-          const targetWidth = pw - 80; // 40 margins
-          const factor = targetWidth / img.width;
-          const targetHeight = img.height * factor;
-          const imgX = 40;
-          const imgY = (ph - targetHeight) / 2; // center vertically a bit
+          var ptargetWidth = pw - 80; // 40 margins
+          var pfactor = ptargetWidth / pimg.width;
+          var ptargetHeight = pimg.height * pfactor;
+          var pimgX = 40;
+          var pimgY = (ph - ptargetHeight) / 2; // center vertically a bit
 
-          page.drawImage(img, {
-            x: imgX,
-            y: imgY,
-            width: targetWidth,
-            height: targetHeight,
+          page.drawImage(pimg, {
+            x: pimgX,
+            y: pimgY,
+            width: ptargetWidth,
+            height: ptargetHeight,
           });
 
-          page.drawText(`${L.photo || "Photo"} ${i + 1}`, {
-            x: imgX,
-            y: imgY - 14,
+          page.drawText((L.photo || "Photo") + " " + (photoIdx + 1), {
+            x: pimgX,
+            y: pimgY - 14,
             size: 10,
             color: rgb(0.2, 0.2, 0.2),
           });
@@ -583,9 +621,9 @@
       form.updateFieldAppearances();
 
       // 6. save & download
-      const pdfBytes = await pdfDoc.save();
-      const blob = new Blob([pdfBytes], { type: "application/pdf" });
-      const link = document.createElement("a");
+      var pdfBytes = await pdfDoc.save();
+      var blob = new Blob([pdfBytes], { type: "application/pdf" });
+      var link = document.createElement("a");
       link.href = URL.createObjectURL(blob);
       link.download = "funnskjema-utfylt.pdf";
       document.body.appendChild(link);
@@ -595,26 +633,26 @@
 
       // 7. email hook (needs server)
       if (emailFinder || emailOwner) {
-        const pdfBase64 = bytesToBase64(new Uint8Array(pdfBytes));
-        const payload = {
-          lang,
-          finder,
-          owner,
+        var pdfBase64 = bytesToBase64(new Uint8Array(pdfBytes));
+        var payload = {
+          lang: lang,
+          finder: finder,
+          owner: owner,
           object: {
             name: objName,
             type: objType,
-            material,
-            age,
+            material: material,
+            age: age,
           },
-          arealtype,
-          depth,
+          arealtype: arealtype,
+          depth: depth,
           location: locationStr,
-          notes,
+          notes: notes,
           wants: {
             finder: emailFinder,
             owner: emailOwner,
           },
-          pdfBase64,
+          pdfBase64: pdfBase64,
           filename: "funnskjema-utfylt.pdf",
         };
         console.log(
@@ -637,7 +675,7 @@
   // expose
   global.saveAsPDF = saveAsPDF;
   global.AppExport = {
-    saveAsPDF,
+    saveAsPDF: saveAsPDF,
   };
 })(window);
 
