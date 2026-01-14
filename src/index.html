@@ -561,9 +561,43 @@ if (typeof window.AppMap !== "undefined" && typeof window.AppMap.initMapAndLocat
 })();
 </script>
 
-<script src="export.js" onerror="window.dbg && window.dbg('export.js load FAILED')"></script>
+<!-- Load export.js with error catching for Safari debugging -->
 <script>
-window.dbg && window.dbg("export.js loaded");
+(function() {
+  var dbg = window.dbg || function(){};
+  dbg("[loader] Loading export.js via XHR to catch parse errors...");
+  
+  var xhr = new XMLHttpRequest();
+  xhr.open("GET", "export.js", true);
+  xhr.onload = function() {
+    if (xhr.status === 200) {
+      dbg("[loader] export.js fetched, length: " + xhr.responseText.length);
+      try {
+        // Try to evaluate the script
+        var fn = new Function(xhr.responseText);
+        fn();
+        dbg("[loader] export.js executed OK");
+      } catch(e) {
+        dbg("[loader] export.js PARSE/EXEC ERROR: " + e.message);
+        dbg("[loader] Error name: " + e.name);
+        dbg("[loader] Error line: " + (e.line || e.lineNumber || "unknown"));
+        // Try to find the problematic line
+        if (e.message) {
+          dbg("[loader] Full error: " + String(e));
+        }
+      }
+    } else {
+      dbg("[loader] export.js fetch failed: " + xhr.status);
+    }
+  };
+  xhr.onerror = function() {
+    dbg("[loader] export.js XHR error");
+  };
+  xhr.send();
+})();
+</script>
+<script>
+window.dbg && window.dbg("export.js loader done");
 window.dbg && window.dbg("saveAsPDF exists: " + (typeof window.saveAsPDF !== "undefined"));
 </script>
 
