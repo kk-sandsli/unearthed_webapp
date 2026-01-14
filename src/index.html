@@ -485,18 +485,31 @@ window.dbg && window.dbg("saveAsPDF exists: " + (typeof window.saveAsPDF !== "un
 <!-- Language dropdown behavior -->
 <script>
   (function(){
-    const toggle = document.getElementById("langToggle");
-    const current = document.getElementById("langCurrent");
-    current.addEventListener("click", () => toggle.classList.toggle("open"));
-    document.addEventListener("click", e => {
-      if (!toggle.contains(e.target)) toggle.classList.remove("open");
-    });
+    try {
+      window.dbg && window.dbg("Lang dropdown init starting");
+      var toggle = document.getElementById("langToggle");
+      var current = document.getElementById("langCurrent");
+      if (current) {
+        current.addEventListener("click", function() { 
+          toggle.classList.toggle("open"); 
+        });
+      }
+      document.addEventListener("click", function(e) {
+        if (toggle && !toggle.contains(e.target)) {
+          toggle.classList.remove("open");
+        }
+      });
+      window.dbg && window.dbg("Lang dropdown init done");
+    } catch(e) {
+      window.dbg && window.dbg("Lang dropdown error: " + e.message);
+    }
   })();
   function setLanguageFromTopbar(lang) {
     if (typeof setLanguage === "function") setLanguage(lang);
-    const label = document.getElementById("langLabel");
+    var label = document.getElementById("langLabel");
     if (label) label.textContent = lang.toUpperCase();
-    document.getElementById("langToggle")?.classList.remove("open");
+    var toggle = document.getElementById("langToggle");
+    if (toggle) toggle.classList.remove("open");
   }
 </script>
 
