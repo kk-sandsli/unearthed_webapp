@@ -253,39 +253,68 @@
   }
 
   function setMarker(lat, lon) {
-    if (!map) return;
+    log("setMarker called");
+    if (!map) {
+      log("setMarker: no map!");
+      return;
+    }
     if (marker) {
       marker.setLatLng([lat, lon]);
     } else {
       marker = L.marker([lat, lon]).addTo(map);
     }
+    log("Marker set");
   }
 
+  var mapInitialized = false;
+  
   function initMapAndLocation() {
     log("initMapAndLocation called");
+    
+    if (mapInitialized) {
+      log("Already initialized, skipping");
+      return;
+    }
+    
     var mapEl = document.getElementById("map");
+    log("mapEl: " + (mapEl ? "found" : "NOT FOUND"));
+    log("L: " + (typeof global.L));
+    
     if (!mapEl || !global.L) {
       log("Leaflet or #map missing – skipping map init.");
       return;
     }
 
-    map = L.map("map").setView([60.0, 10.0], 6);
+    try {
+      log("Creating Leaflet map...");
+      map = L.map("map").setView([60.0, 10.0], 6);
+      log("Map created: " + (map ? "yes" : "no"));
 
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19,
-      attribution: "&copy; OpenStreetMap contributors"
-    }).addTo(map);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: "&copy; OpenStreetMap contributors"
+      }).addTo(map);
+      log("Tile layer added");
 
-    map.on("click", function (e) {
-      var lat = e.latlng.lat;
-      var lng = e.latlng.lng;
-      log("Map clicked at " + lat.toFixed(4) + ", " + lng.toFixed(4));
-      setMarker(lat, lng);
-      updateLocationField(lat, lng);
-    });
+      map.on("click", function (e) {
+        log("Leaflet click event!");
+        var lat = e.latlng.lat;
+        var lng = e.latlng.lng;
+        log("Map clicked at " + lat.toFixed(4) + ", " + lng.toFixed(4));
+        setMarker(lat, lng);
+        updateLocationField(lat, lng);
+      });
+      log("Click handler attached");
+      
+      mapInitialized = true;
+      log("Map init complete");
+    } catch (e) {
+      log("Map init ERROR: " + e.message);
+    }
 
     // try to auto-locate
     if (navigator.geolocation) {
+      log("Requesting geolocation...");
       navigator.geolocation.getCurrentPosition(
         function(pos) {
           var lat = pos.coords.latitude;
