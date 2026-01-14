@@ -8,31 +8,69 @@
   var LANG_STORAGE_KEY = "unearthed-lang";
   var FINDER_STORAGE_KEY = "unearthed-finder";
 
+  // Debug helper
+  function dbgLog(msg) {
+    if (typeof window.dbg === "function") {
+      window.dbg("[export] " + msg);
+    }
+    if (typeof console !== "undefined") {
+      console.log("[export] " + msg);
+    }
+  }
+
+  // Check if localStorage is available
+  function isLocalStorageAvailable() {
+    try {
+      var test = "__storage_test__";
+      localStorage.setItem(test, test);
+      localStorage.removeItem(test);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
   // Save finder info to localStorage
   function saveFinderInfo(finder) {
+    if (!isLocalStorageAvailable()) {
+      dbgLog("localStorage not available for save");
+      return;
+    }
     try {
-      localStorage.setItem(FINDER_STORAGE_KEY, JSON.stringify(finder));
+      var json = JSON.stringify(finder);
+      localStorage.setItem(FINDER_STORAGE_KEY, json);
+      dbgLog("Finder info saved: " + json.substring(0, 50));
     } catch (e) {
-      console.warn("Could not save finder info:", e);
+      dbgLog("Save finder error: " + e.message);
     }
   }
 
   // Load finder info from localStorage
   function loadFinderInfo() {
+    if (!isLocalStorageAvailable()) {
+      dbgLog("localStorage not available for load");
+      return null;
+    }
     try {
       var stored = localStorage.getItem(FINDER_STORAGE_KEY);
+      dbgLog("Loaded from storage: " + (stored ? stored.substring(0, 50) : "null"));
       return stored ? JSON.parse(stored) : null;
     } catch (e) {
-      console.warn("Could not load finder info:", e);
+      dbgLog("Load finder error: " + e.message);
       return null;
     }
   }
 
   // Pre-fill finder fields on page load
   function prefillFinderFields() {
+    dbgLog("prefillFinderFields called");
     var finder = loadFinderInfo();
-    if (!finder) return;
+    if (!finder) {
+      dbgLog("No finder info to prefill");
+      return;
+    }
 
+    dbgLog("Prefilling with: " + finder.name);
     var fieldIds = ["finderName", "finderAddress", "finderPhone", "finderEmail"];
     var fieldValues = [finder.name, finder.address, finder.phone, finder.email];
 
@@ -40,6 +78,7 @@
       var el = document.getElementById(fieldIds[i]);
       if (el && fieldValues[i]) {
         el.value = fieldValues[i];
+        dbgLog("Set " + fieldIds[i] + " = " + fieldValues[i]);
       }
     }
   }

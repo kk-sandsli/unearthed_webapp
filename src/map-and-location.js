@@ -87,7 +87,8 @@
    * Uses XMLHttpRequest for better Safari compatibility.
    */
   function fetchAddressFromGeonorge(lat, lon, callback) {
-    log("fetchAddressFromGeonorge(" + lat.toFixed(4) + ", " + lon.toFixed(4) + ") starting...");
+    log("fetchAddressFromGeonorge starting");
+    log("Coords: " + lat.toFixed(4) + ", " + lon.toFixed(4));
     
     var url = GEONORGE_API_URL + 
       "?lat=" + encodeURIComponent(lat) +
@@ -99,26 +100,54 @@
       "&side=0" +
       "&asciiKompatibel=true";
 
-    log("Request URL: " + url.substring(0, 60) + "...");
+    log("URL built, creating XHR");
 
-    var xhr = new XMLHttpRequest();
-    xhr.open("GET", url, true);
-    xhr.setRequestHeader("Accept", "application/json");
+    var xhr;
+    try {
+      xhr = new XMLHttpRequest();
+    } catch (e) {
+      log("XHR create failed: " + e.message);
+      callback(null);
+      return;
+    }
+
+    var callbackCalled = false;
+    function safeCallback(result) {
+      if (callbackCalled) return;
+      callbackCalled = true;
+      log("Calling callback with: " + (result ? "data" : "null"));
+      callback(result);
+    }
+
+    try {
+      xhr.open("GET", url, true);
+      log("XHR opened");
+    } catch (e) {
+      log("XHR open failed: " + e.message);
+      safeCallback(null);
+      return;
+    }
     
-    xhr.onreadystatechange = function() {
-      if (xhr.readyState !== 4) return;
-      
-      log("XHR status: " + xhr.status + ", readyState: " + xhr.readyState);
-      
-      if (xhr.status === 200) {
+    // Note: Some Safari versions have issues with setRequestHeader
+    try {
+      xhr.setRequestHeader("Accept", "application/json");
+    } catch (e) {
+      log("setRequestHeader failed (continuing): " + e.message);
+    }
+
+    xhr.onload = function() {
+      log("XHR onload, status: " + xhr.status);
+      if (xhr.status >= 200 && xhr.status < 300) {
         try {
-          var data = JSON.parse(xhr.responseText);
-          log("API returned " + (data.adresser ? data.adresser.length : 0) + " addresses");
+          var responseText = xhr.responseText;
+          log("Response length: " + responseText.length);
+          var data = JSON.parse(responseText);
+          log("Parsed OK, addresses: " + (data.adresser ? data.adresser.length : 0));
           
           if (data.adresser && data.adresser.length > 0) {
             var addr = data.adresser[0];
-            log("Using address: " + addr.adressetekst);
-            callback({
+            log("Address: " + (addr.adressetekst || "(none)"));
+            safeCallback({
               adressetekst: addr.adressetekst || "",
               kommunenavn: addr.kommunenavn || "",
               kommunenummer: addr.kommunenummer || "",
@@ -129,25 +158,44 @@
               distanse: addr.meterDistanseTilPunkt || null
             });
           } else {
-            log("No addresses found within radius");
-            callback(null);
+            log("No addresses in response");
+            safeCallback(null);
           }
         } catch (e) {
-          log("JSON parse error: " + e.message);
-          callback(null);
+          log("Parse error: " + e.message);
+          safeCallback(null);
         }
       } else {
-        log("XHR failed with status: " + xhr.status);
-        callback(null);
+        log("HTTP error: " + xhr.status);
+        safeCallback(null);
       }
     };
     
     xhr.onerror = function() {
-      log("XHR network error");
-      callback(null);
+      log("XHR onerror event");
+      safeCallback(null);
     };
+
+    xhr.ontimeout = function() {
+      log("XHR timeout");
+      safeCallback(null);
+    };
+
+    // Set timeout for slow networks
+    try {
+      xhr.timeout = 15000;
+    } catch (e) {
+      log("timeout not supported");
+    }
     
-    xhr.send();
+    log("Sending XHR request");
+    try {
+      xhr.send();
+      log("XHR send() completed");
+    } catch (e) {
+      log("XHR send error: " + e.message);
+      safeCallback(null);
+    }
   }
 
   function updateLocationField(lat, lon) {
