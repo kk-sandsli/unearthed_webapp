@@ -317,445 +317,421 @@
     return el ? !!el.checked : false;
   }
 
-  async function saveAsPDF() {
-    try {
-      await ensurePdfLib();
-      var PDFDocument = global.PDFLib.PDFDocument;
-      var rgb = global.PDFLib.rgb;
+  // Helper to embed image (returns Promise)
+  function embedImage(pdfDoc, dataURL) {
+    var imgBytes = dataURLToUint8Array(dataURL);
+    if (dataURL.indexOf("data:image/png") === 0) {
+      return pdfDoc.embedPng(imgBytes);
+    } else {
+      return pdfDoc.embedJpg(imgBytes);
+    }
+  }
 
-      // current UI language
-      var storedLang = localStorage.getItem(LANG_STORAGE_KEY);
-      var lang = (storedLang && SUMMARY_TEXT[storedLang]) ? storedLang : "no";
-      var L = SUMMARY_TEXT[lang] || SUMMARY_TEXT.no;
+  function saveAsPDF() {
+    var dbg = window.dbg || function(){};
+    dbg("[export] saveAsPDF called");
+    
+    // Collect all form data first (synchronous)
+    var storedLang = localStorage.getItem(LANG_STORAGE_KEY);
+    var lang = (storedLang && SUMMARY_TEXT[storedLang]) ? storedLang : "no";
+    var L = SUMMARY_TEXT[lang] || SUMMARY_TEXT.no;
 
-      // 1. read DOM values
-      var finder = {
-        name: getVal("finderName"),
-        address: getVal("finderAddress"),
-        phone: getVal("finderPhone"),
-        email: getVal("finderEmail"),
-      };
+    var finder = {
+      name: getVal("finderName"),
+      address: getVal("finderAddress"),
+      phone: getVal("finderPhone"),
+      email: getVal("finderEmail")
+    };
+    saveFinderInfo(finder);
 
-      // Save finder info for next visit
-      saveFinderInfo(finder);
+    var owner = {
+      name: getVal("ownerName"),
+      address: getVal("ownerAddress"),
+      phone: getVal("ownerPhone"),
+      email: getVal("ownerEmail"),
+      kommune: getVal("ownerKommune"),
+      gnr: getVal("ownerGnr"),
+      bnr: getVal("ownerBnr")
+    };
+    var objName = getVal("objectName");
+    var objType = getVal("objectType");
+    var material = getVal("material");
+    var age = getVal("age");
+    var arealtype = getVal("arealtype");
+    var depth = getVal("findDepth");
+    var locationStr = getVal("location");
+    var notes = getVal("notes");
+    var emailFinder = getChecked("emailFinder");
+    var emailOwner = getChecked("emailOwner");
 
-      var owner = {
-        name: getVal("ownerName"),
-        address: getVal("ownerAddress"),
-        phone: getVal("ownerPhone"),
-        email: getVal("ownerEmail"),
-        kommune: getVal("ownerKommune"),
-        gnr: getVal("ownerGnr"),
-        bnr: getVal("ownerBnr"),
-      };
-      var objName = getVal("objectName");
-      var objType = getVal("objectType");
-      var material = getVal("material");
-      var age = getVal("age");
-      var arealtype = getVal("arealtype");
-      var depth = getVal("findDepth");
-      var locationStr = getVal("location");
-      var notes = getVal("notes");
-      var emailFinder = getChecked("emailFinder");
-      var emailOwner = getChecked("emailOwner");
-
-      // 2. read ALL photos (now multiple)
-      var photoInput = $("photo");
-      var photoFiles = [];
-      if (photoInput && photoInput.files) {
-        for (var pf = 0; pf < photoInput.files.length; pf++) {
-          photoFiles.push(photoInput.files[pf]);
-        }
+    // Read photo files
+    var photoInput = $("photo");
+    var photoFiles = [];
+    if (photoInput && photoInput.files) {
+      for (var pf = 0; pf < photoInput.files.length; pf++) {
+        photoFiles.push(photoInput.files[pf]);
       }
-      
-      var photoPromises = [];
-      for (var pi = 0; pi < photoFiles.length; pi++) {
-        photoPromises.push(readFileAsDataURL(photoFiles[pi]));
-      }
-      var photoDataURLs = await Promise.all(photoPromises);
+    }
 
-      // 3. load PDF template
-      var resp = await fetch(PDF_TEMPLATE_URL);
-      if (!resp.ok) {
-        throw new Error("Could not fetch " + PDF_TEMPLATE_URL);
-      }
-      var existingPdfBytes = await resp.arrayBuffer();
-      var pdfDoc = await PDFDocument.load(existingPdfBytes, {
-        ignoreEncryption: true,
-      });
+    var photoPromises = [];
+    for (var pi = 0; pi < photoFiles.length; pi++) {
+      photoPromises.push(readFileAsDataURL(photoFiles[pi]));
+    }
 
-      var form = pdfDoc.getForm();
+    // Parse location for GPS
+    var parsed = parseLatLon(locationStr);
 
-      // 4. fill main form (real names)
-      // Parse finder address into components: "Street 123, 5073 PLACE"
-      var finderStreet = "";
-      var finderPostnummer = "";
-      var finderSted = "";
-
-      if (finder.address) {
-        var fcommaIdx = finder.address.lastIndexOf(",");
-        if (fcommaIdx > -1) {
-          finderStreet = finder.address.substring(0, fcommaIdx).trim();
-          var fpostcodePlace = finder.address.substring(fcommaIdx + 1).trim();
-          // Split "5073 BERGEN" into postcode and place
-          var fspaceIdx = fpostcodePlace.indexOf(" ");
-          if (fspaceIdx > -1) {
-            finderPostnummer = fpostcodePlace.substring(0, fspaceIdx).trim();
-            finderSted = fpostcodePlace.substring(fspaceIdx + 1).trim();
-          } else {
-            // Might be just postcode or just place
-            if (/^\d+$/.test(fpostcodePlace)) {
-              finderPostnummer = fpostcodePlace;
-            } else {
-              finderSted = fpostcodePlace;
-            }
-          }
+    // Parse finder address
+    var finderStreet = "";
+    var finderPostnummer = "";
+    var finderSted = "";
+    if (finder.address) {
+      var fcommaIdx = finder.address.lastIndexOf(",");
+      if (fcommaIdx > -1) {
+        finderStreet = finder.address.substring(0, fcommaIdx).trim();
+        var fpostcodePlace = finder.address.substring(fcommaIdx + 1).trim();
+        var fspaceIdx = fpostcodePlace.indexOf(" ");
+        if (fspaceIdx > -1) {
+          finderPostnummer = fpostcodePlace.substring(0, fspaceIdx).trim();
+          finderSted = fpostcodePlace.substring(fspaceIdx + 1).trim();
         } else {
-          // No comma, just use as street
-          finderStreet = finder.address;
-        }
-      }
-
-      form.getTextField("Navn finner").setText(finder.name);
-      form.getTextField("Adresse finner").setText(finderStreet);
-      form.getTextField("Postnummer finner").setText(finderPostnummer);
-      form.getTextField("Sted finner").setText(finderSted);
-      form.getTextField("Telefonnummer finner").setText(finder.phone);
-      form.getTextField("E-post finner").setText(finder.email);
-
-      // Note: addressData is fetched later, owner address parsing happens after GPS section
-      form.getTextField("Grunneier").setText(owner.name);
-      form.getTextField("Telefonnummer grunneier").setText(owner.phone);
-      form.getTextField("E-post grunneier").setText(owner.email);
-
-      // permission - only check if owner name is provided
-      if (owner.name && owner.name.trim() !== "") {
-        safeCheckBox(form, "Grunneier har gitt tillatelse _y87rRhfj6A5hS8oITp7knw");
-      }
-
-      // object
-      form.getTextField("Gjenstand").setText(objName);
-
-      // depth -> Dybde
-      if (depth) {
-        try {
-          form.getTextField("Dybde").setText(depth + " cm");
-        } catch (e) {
-          console.warn("Could not set Dybde:", e);
-        }
-      }
-
-      // GPS
-      var parsed = parseLatLon(locationStr);
-      if (parsed) {
-        form.getTextField("GPS-nord").setText(parsed.lat.toFixed(6));
-        form.getTextField("GPS-øst").setText(parsed.lon.toFixed(6));
-      }
-      form.getTextField("Datum/projeksjon").setText("WGS84 (EPSG:4326)");
-
-      // Fetch kommune/fylke info from Kartverket API (best-effort)
-      var kommuneInfo = null;
-      if (parsed) {
-        kommuneInfo = await fetchKommuneInfo(parsed.lat, parsed.lon);
-        if (kommuneInfo) {
-          console.log("Kartverket kommune info:", kommuneInfo);
-        }
-      }
-
-      // Fill Fylke field
-      if (kommuneInfo && kommuneInfo.fylkesnavn) {
-        try {
-          form.getTextField("Fylke").setText(kommuneInfo.fylkesnavn);
-        } catch (e) {
-          console.warn("Could not set Fylke field:", e);
-        }
-      }
-
-      // Address data from Geonorge API (best-effort, may be null)
-      var addressData = (global.AppMap && global.AppMap.getLastAddressData) 
-        ? global.AppMap.getLastAddressData() 
-        : null;
-
-      // Parse owner address into components for PDF fields
-      // If we have API data, use it directly; otherwise try to parse the combined address
-      var ownerStreet = "";
-      var ownerPostnummer = "";
-      var ownerSted = "";
-
-      if (addressData) {
-        // Use raw API data (most reliable)
-        ownerStreet = addressData.adressetekst || "";
-        ownerPostnummer = addressData.postnummer || "";
-        ownerSted = addressData.poststed || "";
-      } else if (owner.address) {
-        // Try to parse combined address: "Street 123, 5073 PLACE"
-        var ocommaIdx = owner.address.lastIndexOf(",");
-        if (ocommaIdx > -1) {
-          ownerStreet = owner.address.substring(0, ocommaIdx).trim();
-          var opostcodePlace = owner.address.substring(ocommaIdx + 1).trim();
-          // Split "5073 BERGEN" into postcode and place
-          var ospaceIdx = opostcodePlace.indexOf(" ");
-          if (ospaceIdx > -1) {
-            ownerPostnummer = opostcodePlace.substring(0, ospaceIdx).trim();
-            ownerSted = opostcodePlace.substring(ospaceIdx + 1).trim();
+          if (/^\d+$/.test(fpostcodePlace)) {
+            finderPostnummer = fpostcodePlace;
           } else {
-            // Might be just postcode or just place
-            if (/^\d+$/.test(opostcodePlace)) {
-              ownerPostnummer = opostcodePlace;
-            } else {
-              ownerSted = opostcodePlace;
-            }
+            finderSted = fpostcodePlace;
           }
-        } else {
-          // No comma, just use as street
-          ownerStreet = owner.address;
         }
+      } else {
+        finderStreet = finder.address;
       }
+    }
 
-      // Fill owner address fields in PDF
-      form.getTextField("Adresse grunneier").setText(ownerStreet);
-      form.getTextField("Postnummer grunneier").setText(ownerPostnummer);
-      form.getTextField("Sted grunneier").setText(ownerSted);
-
-      // Address data - prefer form fields (user may have edited), fallback to API data
-      var kommune = owner.kommune || (addressData && addressData.kommunenavn ? addressData.kommunenavn : "");
-      var gnr = owner.gnr || (addressData && addressData.gardsnummer ? String(addressData.gardsnummer) : "");
-      var bnr = owner.bnr || (addressData && addressData.bruksnummer ? String(addressData.bruksnummer) : "");
-
-      // Fill Kommune field
-      if (kommune) {
-        try {
-          form.getTextField("Kommune").setText(kommune);
-        } catch (e) {
-          console.warn("Could not set Kommune field:", e);
-        }
-      }
-
-      // Fill "Funnsted" field with gnr/bnr info
-      if (gnr || bnr) {
-        var gbnrText = (gnr && bnr) ? (gnr + "/" + bnr) : (gnr || bnr);
-        try {
-          form.getTextField("Funnsted").setText(gbnrText);
-          console.log("Successfully set field Funnsted to " + gbnrText);
-        } catch (e) {
-          console.warn("Could not set Funnsted field:", e);
-        }
-      }
-
-      // date
-      try {
-        form
-          .getTextField("Funndato")
-          .setText(new Date().toISOString().slice(0, 10));
-      } catch (_) {}
-
-      // extra info – material, age, and notes only
-      var extra = [];
-      if (material) extra.push((L.material || "Material") + ": " + material);
-      if (age) extra.push((L.age || "Age") + ": " + age);
-      if (notes) extra.push(notes);
-      form.getTextField("Andre opplysninger").setText(extra.join("\n"));
-
-      // Målemetode -> Mobiltelefon
-      safeCheckBox(form, "Check Box12");
-
-      // Arealtype
-      if (arealtype) {
-        var akey = arealtype.trim().toLowerCase();
-        var afieldName =
-          AREALTYPE_TO_CHECKBOX[akey] ||
-          AREALTYPE_TO_CHECKBOX[akey.replace("å", "a")];
-        if (afieldName) {
-          safeCheckBox(form, afieldName);
-        }
-      }
-
-      // 5. first summary page (with big photo)
-      var summaryPage = pdfDoc.addPage([595.28, 841.89]); // A4 portrait
-      var pageSize = summaryPage.getSize();
-      var width = pageSize.width;
-      var height = pageSize.height;
-      var y = height - 50;
-      var left = 40;
-      var lineHeight = 16;
-
-      function drawLine(label, value) {
-        summaryPage.drawText(label + ": " + (value || ""), {
-          x: left,
-          y: y,
-          size: 11,
+    // Start the Promise chain
+    dbg("[export] Starting PDF generation...");
+    
+    ensurePdfLib()
+      .then(function() {
+        dbg("[export] pdf-lib loaded");
+        return Promise.all(photoPromises);
+      })
+      .then(function(photoDataURLs) {
+        dbg("[export] Photos read: " + photoDataURLs.length);
+        
+        // Fetch PDF template using XMLHttpRequest for Safari compatibility
+        return new Promise(function(resolve, reject) {
+          var xhr = new XMLHttpRequest();
+          xhr.open("GET", PDF_TEMPLATE_URL, true);
+          xhr.responseType = "arraybuffer";
+          xhr.onload = function() {
+            if (xhr.status === 200) {
+              resolve({ pdfBytes: xhr.response, photos: photoDataURLs });
+            } else {
+              reject(new Error("Could not fetch " + PDF_TEMPLATE_URL));
+            }
+          };
+          xhr.onerror = function() {
+            reject(new Error("Network error fetching PDF template"));
+          };
+          xhr.send();
         });
-        y -= lineHeight;
-      }
+      })
+      .then(function(data) {
+        dbg("[export] PDF template loaded");
+        var PDFDocument = global.PDFLib.PDFDocument;
+        var rgb = global.PDFLib.rgb;
+        var photoDataURLs = data.photos;
+        
+        return PDFDocument.load(data.pdfBytes, { ignoreEncryption: true })
+          .then(function(pdfDoc) {
+            return { pdfDoc: pdfDoc, rgb: rgb, photos: photoDataURLs };
+          });
+      })
+      .then(function(ctx) {
+        dbg("[export] PDF document loaded");
+        var pdfDoc = ctx.pdfDoc;
+        var rgb = ctx.rgb;
+        var photoDataURLs = ctx.photos;
+        var form = pdfDoc.getForm();
 
-      // title
-      summaryPage.drawText(L.title || "Find – summary", {
-        x: left,
-        y: y,
-        size: 14,
-        color: rgb(0.2, 0.2, 0.2),
-      });
-      y -= 26;
+        // Fill finder fields
+        form.getTextField("Navn finner").setText(finder.name);
+        form.getTextField("Adresse finner").setText(finderStreet);
+        form.getTextField("Postnummer finner").setText(finderPostnummer);
+        form.getTextField("Sted finner").setText(finderSted);
+        form.getTextField("Telefonnummer finner").setText(finder.phone);
+        form.getTextField("E-post finner").setText(finder.email);
 
-      drawLine(L.object, objName);
-      drawLine(L.type, objType);
-      drawLine(L.material, material);
-      drawLine(L.age, age);
-      drawLine(L.area, arealtype);
-      drawLine(L.depth, depth ? depth + " cm" : "");
-      drawLine(L.location, locationStr);
-      drawLine(L.finder, finder.name);
-      drawLine(L.finderEmail, finder.email);
-      drawLine(L.owner, owner.name);
-      drawLine(L.ownerEmail, owner.email);
+        // Fill owner fields
+        form.getTextField("Grunneier").setText(owner.name);
+        form.getTextField("Telefonnummer grunneier").setText(owner.phone);
+        form.getTextField("E-post grunneier").setText(owner.email);
 
-      // notes
-      if (notes) {
-        y -= 6;
-        summaryPage.drawText(L.notes + ":", { x: left, y: y, size: 11 });
-        y -= lineHeight;
-        var words = notes.split(/\s+/);
-        var lineText = "";
-        var maxChars = 85;
-        for (var wi = 0; wi < words.length; wi++) {
-          var w = words[wi];
-          var test = lineText + w + " ";
-          if (test.length > maxChars) {
+        if (owner.name && owner.name.trim() !== "") {
+          safeCheckBox(form, "Grunneier har gitt tillatelse _y87rRhfj6A5hS8oITp7knw");
+        }
+
+        form.getTextField("Gjenstand").setText(objName);
+
+        if (depth) {
+          try {
+            form.getTextField("Dybde").setText(depth + " cm");
+          } catch (e) {
+            console.warn("Could not set Dybde:", e);
+          }
+        }
+
+        // GPS
+        if (parsed) {
+          form.getTextField("GPS-nord").setText(parsed.lat.toFixed(6));
+          form.getTextField("GPS-øst").setText(parsed.lon.toFixed(6));
+        }
+        form.getTextField("Datum/projeksjon").setText("WGS84 (EPSG:4326)");
+
+        // Fetch kommune info (returns Promise)
+        var kommunePromise = parsed ? fetchKommuneInfo(parsed.lat, parsed.lon) : Promise.resolve(null);
+        
+        return kommunePromise.then(function(kommuneInfo) {
+          if (kommuneInfo && kommuneInfo.fylkesnavn) {
+            try {
+              form.getTextField("Fylke").setText(kommuneInfo.fylkesnavn);
+            } catch (e) {
+              console.warn("Could not set Fylke field:", e);
+            }
+          }
+
+          // Address data from Geonorge API
+          var addressData = (global.AppMap && global.AppMap.getLastAddressData) 
+            ? global.AppMap.getLastAddressData() 
+            : null;
+
+          // Parse owner address
+          var ownerStreet = "";
+          var ownerPostnummer = "";
+          var ownerSted = "";
+
+          if (addressData) {
+            ownerStreet = addressData.adressetekst || "";
+            ownerPostnummer = addressData.postnummer || "";
+            ownerSted = addressData.poststed || "";
+          } else if (owner.address) {
+            var ocommaIdx = owner.address.lastIndexOf(",");
+            if (ocommaIdx > -1) {
+              ownerStreet = owner.address.substring(0, ocommaIdx).trim();
+              var opostcodePlace = owner.address.substring(ocommaIdx + 1).trim();
+              var ospaceIdx = opostcodePlace.indexOf(" ");
+              if (ospaceIdx > -1) {
+                ownerPostnummer = opostcodePlace.substring(0, ospaceIdx).trim();
+                ownerSted = opostcodePlace.substring(ospaceIdx + 1).trim();
+              } else {
+                if (/^\d+$/.test(opostcodePlace)) {
+                  ownerPostnummer = opostcodePlace;
+                } else {
+                  ownerSted = opostcodePlace;
+                }
+              }
+            } else {
+              ownerStreet = owner.address;
+            }
+          }
+
+          form.getTextField("Adresse grunneier").setText(ownerStreet);
+          form.getTextField("Postnummer grunneier").setText(ownerPostnummer);
+          form.getTextField("Sted grunneier").setText(ownerSted);
+
+          var kommune = owner.kommune || (addressData && addressData.kommunenavn ? addressData.kommunenavn : "");
+          var gnr = owner.gnr || (addressData && addressData.gardsnummer ? String(addressData.gardsnummer) : "");
+          var bnr = owner.bnr || (addressData && addressData.bruksnummer ? String(addressData.bruksnummer) : "");
+
+          if (kommune) {
+            try {
+              form.getTextField("Kommune").setText(kommune);
+            } catch (e) {
+              console.warn("Could not set Kommune field:", e);
+            }
+          }
+
+          if (gnr || bnr) {
+            var gbnrText = (gnr && bnr) ? (gnr + "/" + bnr) : (gnr || bnr);
+            try {
+              form.getTextField("Funnsted").setText(gbnrText);
+            } catch (e) {
+              console.warn("Could not set Funnsted field:", e);
+            }
+          }
+
+          try {
+            form.getTextField("Funndato").setText(new Date().toISOString().slice(0, 10));
+          } catch (_) {}
+
+          var extra = [];
+          if (material) extra.push((L.material || "Material") + ": " + material);
+          if (age) extra.push((L.age || "Age") + ": " + age);
+          if (notes) extra.push(notes);
+          form.getTextField("Andre opplysninger").setText(extra.join("\n"));
+
+          safeCheckBox(form, "Check Box12");
+
+          if (arealtype) {
+            var akey = arealtype.trim().toLowerCase();
+            var afieldName = AREALTYPE_TO_CHECKBOX[akey] || AREALTYPE_TO_CHECKBOX[akey.replace("å", "a")];
+            if (afieldName) {
+              safeCheckBox(form, afieldName);
+            }
+          }
+
+          return { pdfDoc: pdfDoc, rgb: rgb, form: form, photos: photoDataURLs, L: L };
+        });
+      })
+      .then(function(ctx) {
+        dbg("[export] Form fields filled, adding summary page");
+        var pdfDoc = ctx.pdfDoc;
+        var rgb = ctx.rgb;
+        var photoDataURLs = ctx.photos;
+        var L = ctx.L;
+
+        // Add summary page
+        var summaryPage = pdfDoc.addPage([595.28, 841.89]);
+        var pageSize = summaryPage.getSize();
+        var width = pageSize.width;
+        var height = pageSize.height;
+        var y = height - 50;
+        var left = 40;
+        var lineHeight = 16;
+
+        function drawLine(label, value) {
+          summaryPage.drawText(label + ": " + (value || ""), { x: left, y: y, size: 11 });
+          y -= lineHeight;
+        }
+
+        summaryPage.drawText(L.title || "Find – summary", {
+          x: left, y: y, size: 14, color: rgb(0.2, 0.2, 0.2)
+        });
+        y -= 26;
+
+        drawLine(L.object, objName);
+        drawLine(L.type, objType);
+        drawLine(L.material, material);
+        drawLine(L.age, age);
+        drawLine(L.area, arealtype);
+        drawLine(L.depth, depth ? depth + " cm" : "");
+        drawLine(L.location, locationStr);
+        drawLine(L.finder, finder.name);
+        drawLine(L.finderEmail, finder.email);
+        drawLine(L.owner, owner.name);
+        drawLine(L.ownerEmail, owner.email);
+
+        if (notes) {
+          y -= 6;
+          summaryPage.drawText(L.notes + ":", { x: left, y: y, size: 11 });
+          y -= lineHeight;
+          var words = notes.split(/\s+/);
+          var lineText = "";
+          var maxChars = 85;
+          for (var wi = 0; wi < words.length; wi++) {
+            var w = words[wi];
+            var test = lineText + w + " ";
+            if (test.length > maxChars) {
+              summaryPage.drawText(lineText, { x: left, y: y, size: 10 });
+              y -= 14;
+              lineText = w + " ";
+            } else {
+              lineText = test;
+            }
+          }
+          if (lineText) {
             summaryPage.drawText(lineText, { x: left, y: y, size: 10 });
             y -= 14;
-            lineText = w + " ";
-          } else {
-            lineText = test;
           }
         }
-        if (lineText) {
-          summaryPage.drawText(lineText, { x: left, y: y, size: 10 });
-          y -= 14;
-        }
-      }
 
-      // BIG photo on FIRST summary page (about half page)
-      if (photoDataURLs.length > 0) {
-        var firstPhoto = photoDataURLs[0];
-        var imgBytes = dataURLToUint8Array(firstPhoto);
-        var img;
-        if (firstPhoto.startsWith("data:image/png")) {
-          img = await pdfDoc.embedPng(imgBytes);
-        } else {
-          img = await pdfDoc.embedJpg(imgBytes);
+        // Embed photos sequentially
+        var photoChain = Promise.resolve();
+        
+        // First photo on summary page
+        if (photoDataURLs.length > 0) {
+          photoChain = embedImage(pdfDoc, photoDataURLs[0]).then(function(img) {
+            var targetWidth = width - 80;
+            var factor = targetWidth / img.width;
+            var targetHeight = img.height * factor;
+            var imgY = 80;
+            summaryPage.drawImage(img, {
+              x: left, y: imgY, width: targetWidth, height: targetHeight
+            });
+            summaryPage.drawText((L.photo || "Photo") + " 1", {
+              x: left, y: imgY - 12, size: 9, color: rgb(0.2, 0.2, 0.2)
+            });
+          });
         }
-        // target width ~ half page (a bit less than full width)
-        var targetWidth = width - 80; // 40 margins left/right
-        var factor = targetWidth / img.width;
-        var targetHeight = img.height * factor;
-        var imgX = left;
-        // put image lower, so text stays top
-        var imgY = 80; // leave bottom margin
-        summaryPage.drawImage(img, {
-          x: imgX,
-          y: imgY,
-          width: targetWidth,
-          height: targetHeight,
-        });
-        // small caption
-        summaryPage.drawText((L.photo || "Photo") + " 1", {
-          x: left,
-          y: imgY - 12,
-          size: 9,
-          color: rgb(0.2, 0.2, 0.2),
-        });
-      }
 
-      // OTHER photos → each gets its own page
-      if (photoDataURLs.length > 1) {
+        // Additional photos on separate pages
         for (var photoIdx = 1; photoIdx < photoDataURLs.length; photoIdx++) {
-          var pData = photoDataURLs[photoIdx];
-          var pimgBytes = dataURLToUint8Array(pData);
-          var page = pdfDoc.addPage([595.28, 841.89]);
-          var psize = page.getSize();
-          var pw = psize.width;
-          var ph = psize.height;
-
-          var pimg;
-          if (pData.startsWith("data:image/png")) {
-            pimg = await pdfDoc.embedPng(pimgBytes);
-          } else {
-            pimg = await pdfDoc.embedJpg(pimgBytes);
-          }
-
-          // half page (big)
-          var ptargetWidth = pw - 80; // 40 margins
-          var pfactor = ptargetWidth / pimg.width;
-          var ptargetHeight = pimg.height * pfactor;
-          var pimgX = 40;
-          var pimgY = (ph - ptargetHeight) / 2; // center vertically a bit
-
-          page.drawImage(pimg, {
-            x: pimgX,
-            y: pimgY,
-            width: ptargetWidth,
-            height: ptargetHeight,
-          });
-
-          page.drawText((L.photo || "Photo") + " " + (photoIdx + 1), {
-            x: pimgX,
-            y: pimgY - 14,
-            size: 10,
-            color: rgb(0.2, 0.2, 0.2),
-          });
+          (function(idx) {
+            photoChain = photoChain.then(function() {
+              return embedImage(pdfDoc, photoDataURLs[idx]).then(function(pimg) {
+                var page = pdfDoc.addPage([595.28, 841.89]);
+                var psize = page.getSize();
+                var pw = psize.width;
+                var ph = psize.height;
+                var ptargetWidth = pw - 80;
+                var pfactor = ptargetWidth / pimg.width;
+                var ptargetHeight = pimg.height * pfactor;
+                var pimgY = (ph - ptargetHeight) / 2;
+                page.drawImage(pimg, {
+                  x: 40, y: pimgY, width: ptargetWidth, height: ptargetHeight
+                });
+                page.drawText((L.photo || "Photo") + " " + (idx + 1), {
+                  x: 40, y: pimgY - 14, size: 10, color: rgb(0.2, 0.2, 0.2)
+                });
+              });
+            });
+          })(photoIdx);
         }
-      }
 
-      // update form appearances
-      form.updateFieldAppearances();
+        return photoChain.then(function() {
+          return { pdfDoc: pdfDoc, form: ctx.form };
+        });
+      })
+      .then(function(ctx) {
+        dbg("[export] Updating form appearances");
+        ctx.form.updateFieldAppearances();
+        return ctx.pdfDoc.save();
+      })
+      .then(function(pdfBytes) {
+        dbg("[export] PDF saved, initiating download");
+        var blob = new Blob([pdfBytes], { type: "application/pdf" });
+        var link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = "funnskjema-utfylt.pdf";
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(link.href);
 
-      // 6. save & download
-      var pdfBytes = await pdfDoc.save();
-      var blob = new Blob([pdfBytes], { type: "application/pdf" });
-      var link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = "funnskjema-utfylt.pdf";
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(link.href);
-
-      // 7. email hook (needs server)
-      if (emailFinder || emailOwner) {
-        var pdfBase64 = bytesToBase64(new Uint8Array(pdfBytes));
-        var payload = {
-          lang: lang,
-          finder: finder,
-          owner: owner,
-          object: {
-            name: objName,
-            type: objType,
-            material: material,
-            age: age,
-          },
-          arealtype: arealtype,
-          depth: depth,
-          location: locationStr,
-          notes: notes,
-          wants: {
-            finder: emailFinder,
-            owner: emailOwner,
-          },
-          pdfBase64: pdfBase64,
-          filename: "funnskjema-utfylt.pdf",
-        };
-        console.log(
-          "Email requested – send this payload to your server:",
-          payload
-        );
-      }
-    } catch (err) {
-      console.error("Could not create filled PDF:", err);
-      alert(
-        "Could not create the filled PDF. See console for details.\n" +
-          (err && err.message ? err.message : "")
-      );
-    }
+        // Email hook
+        if (emailFinder || emailOwner) {
+          var pdfBase64 = bytesToBase64(new Uint8Array(pdfBytes));
+          var payload = {
+            lang: lang,
+            finder: finder,
+            owner: owner,
+            object: { name: objName, type: objType, material: material, age: age },
+            arealtype: arealtype,
+            depth: depth,
+            location: locationStr,
+            notes: notes,
+            wants: { finder: emailFinder, owner: emailOwner },
+            pdfBase64: pdfBase64,
+            filename: "funnskjema-utfylt.pdf"
+          };
+          console.log("Email requested – send this payload to your server:", payload);
+        }
+        
+        dbg("[export] PDF generation complete");
+      })
+      .catch(function(err) {
+        console.error("Could not create filled PDF:", err);
+        alert("Could not create the filled PDF. See console for details.\n" + (err && err.message ? err.message : ""));
+      });
   }
 
   // Pre-fill finder fields when page loads and setup auto-save
