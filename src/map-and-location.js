@@ -10,6 +10,90 @@
   // Geonorge API endpoint for point search
   const GEONORGE_API_URL = "https://ws.geonorge.no/adresser/v1/punktsok";
 
+  // ========== DEBUG OVERLAY ==========
+  let debugPanel = null;
+  let debugBtn = null;
+  let debugLogs = [];
+
+  function initDebugOverlay() {
+    // Create toggle button
+    debugBtn = document.createElement("button");
+    debugBtn.textContent = "📋";
+    debugBtn.style.cssText = `
+      position: fixed;
+      bottom: 10px;
+      right: 10px;
+      z-index: 10000;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: none;
+      background: #4e6c50;
+      color: white;
+      font-size: 20px;
+      cursor: pointer;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    `;
+    debugBtn.addEventListener("click", toggleDebugPanel);
+    document.body.appendChild(debugBtn);
+
+    // Create panel (hidden initially)
+    debugPanel = document.createElement("div");
+    debugPanel.style.cssText = `
+      position: fixed;
+      bottom: 60px;
+      right: 10px;
+      left: 10px;
+      max-height: 50vh;
+      z-index: 9999;
+      background: rgba(0,0,0,0.9);
+      color: #0f0;
+      font-family: monospace;
+      font-size: 11px;
+      padding: 10px;
+      border-radius: 8px;
+      overflow-y: auto;
+      display: none;
+      white-space: pre-wrap;
+      word-break: break-all;
+    `;
+    document.body.appendChild(debugPanel);
+  }
+
+  function toggleDebugPanel() {
+    if (debugPanel.style.display === "none") {
+      debugPanel.style.display = "block";
+      renderDebugLogs();
+    } else {
+      debugPanel.style.display = "none";
+    }
+  }
+
+  function debugLog(msg) {
+    const timestamp = new Date().toLocaleTimeString();
+    const entry = `[${timestamp}] ${msg}`;
+    debugLogs.push(entry);
+    // Keep last 50 entries
+    if (debugLogs.length > 50) debugLogs.shift();
+    console.log(entry);
+    renderDebugLogs();
+  }
+
+  function renderDebugLogs() {
+    if (debugPanel && debugPanel.style.display !== "none") {
+      debugPanel.textContent = debugLogs.join("\n");
+      debugPanel.scrollTop = debugPanel.scrollHeight;
+    }
+  }
+
+  // Initialize debug overlay when DOM is ready
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initDebugOverlay);
+  } else {
+    initDebugOverlay();
+  }
+  // ========== END DEBUG OVERLAY ==========
+
   // You already load Leaflet CSS in your HTML; make sure you also load the JS:
   // <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
@@ -23,6 +107,7 @@
    */
   function updateOwnerFieldsFromAddress(addressData) {
     if (!addressData) return;
+    debugLog("updateOwnerFieldsFromAddress called");
 
     // Build full address string from components
     const fullAddress = [
@@ -63,6 +148,7 @@
    * Clear all owner address fields (when no address is found).
    */
   function clearOwnerFields() {
+    debugLog("clearOwnerFields called");
     const fields = ["ownerAddress", "ownerKommune", "ownerGnr", "ownerBnr"];
     fields.forEach((id) => {
       const el = document.getElementById(id);
@@ -75,6 +161,7 @@
    * Silent failure - returns null if lookup fails.
    */
   async function fetchAddressFromGeonorge(lat, lon) {
+    debugLog(`fetchAddressFromGeonorge(${lat}, ${lon}) starting...`);
     try {
       const params = new URLSearchParams({
         lat: lat.toString(),
@@ -87,19 +174,23 @@
         asciiKompatibel: "true",
       });
 
+      debugLog("Fetching: " + GEONORGE_API_URL + "?" + params.toString().substring(0, 50) + "...");
       const response = await fetch(`${GEONORGE_API_URL}?${params}`, {
         headers: { accept: "application/json" },
       });
 
+      debugLog(`Fetch response status: ${response.status}`);
       if (!response.ok) {
-        console.warn("Geonorge API request failed:", response.status);
+        debugLog("API request failed: " + response.status);
         return null;
       }
 
       const data = await response.json();
+      debugLog(`API returned ${data.adresser ? data.adresser.length : 0} addresses`);
 
       if (data.adresser && data.adresser.length > 0) {
         const addr = data.adresser[0]; // Closest address (ordered by distance)
+        debugLog("Using address: " + addr.adressetekst);
         return {
           adressetekst: addr.adressetekst || "",
           kommunenavn: addr.kommunenavn || "",
@@ -112,32 +203,42 @@
         };
       }
 
+      debugLog("No addresses found within radius");
+      debugLog("No addresses found within radius");
       return null; // No addresses found within radius
     } catch (err) {
+      debugLog("API ERROR: " + (err.message || err));
       console.warn("Geonorge API lookup failed:", err);
       return null;
     }
   }
 
   function updateLocationField(lat, lon) {
+    debugLog(`updateLocationField(${lat.toFixed(4)}, ${lon.toFixed(4)})`);
     const input = document.getElementById("location");
     if (input) {
       input.value = formatLatLon(lat, lon);
+      debugLog("Location field updated");
+    } else {
+      debugLog("ERROR: #location input not found!");
     }
     lastLatLon = { lat, lon };
 
     // Fetch address data from Geonorge API (async, best-effort)
     fetchAddressFromGeonorge(lat, lon).then((addressData) => {
+      debugLog("fetchAddressFromGeonorge .then() called");
       lastAddressData = addressData;
       if (addressData) {
-        console.log("Geonorge address found:", addressData);
+        debugLog("Address data received, updating fields");
         // Update owner fields with address data
         updateOwnerFieldsFromAddress(addressData);
       } else {
         // No address found - clear the fields
-        console.log("No address found within radius - clearing fields");
+        debugLog("No address data - clearing fields");
         clearOwnerFields();
       }
+    }).catch((err) => {
+      debugLog("Promise CATCH: " + (err.message || err));
     });
 
     // small status line
