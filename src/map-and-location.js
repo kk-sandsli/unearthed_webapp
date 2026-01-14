@@ -2,6 +2,11 @@
 // Handles Leaflet map + geolocation + keeping #location in sync.
 
 (function (global) {
+  // Immediate log to confirm script execution
+  if (typeof window.dbg === "function") {
+    window.dbg("map-and-location IIFE running");
+  }
+
   var map = null;
   var marker = null;
   var lastLatLon = null;
@@ -331,14 +336,20 @@
     return lastAddressData;
   }
 
-  document.addEventListener("DOMContentLoaded", initMapAndLocation);
+  // Initialize - handle case where DOMContentLoaded already fired
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initMapAndLocation);
+  } else {
+    // DOM already ready, init immediately but with slight delay to ensure dbg exists
+    setTimeout(initMapAndLocation, 0);
+  }
 
   global.useCurrentLocation = useCurrentLocation;
   global.AppMap = {
-    initMapAndLocation,
-    useCurrentLocation,
-    getLastLatLon,
-    getLastAddressData,
+    initMapAndLocation: initMapAndLocation,
+    useCurrentLocation: useCurrentLocation,
+    getLastLatLon: getLastLatLon,
+    getLastAddressData: getLastAddressData
   };
 })(window);
 

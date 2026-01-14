@@ -709,12 +709,17 @@
   }
 
   // Pre-fill finder fields when page loads
-  document.addEventListener("DOMContentLoaded", prefillFinderFields);
+  // Handle case where DOMContentLoaded already fired
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", prefillFinderFields);
+  } else {
+    setTimeout(prefillFinderFields, 0);
+  }
 
   // expose
   global.saveAsPDF = saveAsPDF;
   global.AppExport = {
-    saveAsPDF: saveAsPDF,
+    saveAsPDF: saveAsPDF
   };
 })(window);
 
