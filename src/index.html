@@ -480,6 +480,55 @@ window.dbg && window.dbg("saveAsPDF exists: " + (typeof window.saveAsPDF !== "un
           window.dbg && window.dbg("Last latlon: " + (latlon ? (latlon.lat + "," + latlon.lon) : "null"));
           var addrData = window.AppMap.getLastAddressData ? window.AppMap.getLastAddressData() : null;
           window.dbg && window.dbg("Last addr data: " + (addrData ? JSON.stringify(addrData).substring(0,80) : "null"));
+          
+          // If no address data but we have latlon, try fetching inline
+          if (latlon && !addrData) {
+            window.dbg && window.dbg("=== Inline fetch test ===");
+            var url = "https://ws.geonorge.no/adresser/v1/punktsok" +
+              "?lat=" + latlon.lat +
+              "&lon=" + latlon.lon +
+              "&radius=10000&treffPerSide=1";
+            var xhr = new XMLHttpRequest();
+            xhr.open("GET", url, true);
+            xhr.onload = function() {
+              window.dbg && window.dbg("Inline fetch status: " + xhr.status);
+              if (xhr.status === 200) {
+                try {
+                  var data = JSON.parse(xhr.responseText);
+                  if (data.adresser && data.adresser.length > 0) {
+                    var addr = data.adresser[0];
+                    window.dbg && window.dbg("Inline got: " + addr.adressetekst);
+                    // Update fields directly
+                    var ownerAddr = document.getElementById("ownerAddress");
+                    if (ownerAddr) {
+                      var fullAddr = addr.adressetekst || "";
+                      if (addr.postnummer && addr.poststed) {
+                        fullAddr += ", " + addr.postnummer + " " + addr.poststed;
+                      }
+                      ownerAddr.value = fullAddr;
+                      window.dbg && window.dbg("Set ownerAddress: " + fullAddr);
+                    }
+                    var kommune = document.getElementById("ownerKommune");
+                    if (kommune) kommune.value = addr.kommunenavn || "";
+                    var gnr = document.getElementById("ownerGnr");
+                    if (gnr) gnr.value = addr.gardsnummer || "";
+                    var bnr = document.getElementById("ownerBnr");
+                    if (bnr) bnr.value = addr.bruksnummer || "";
+                    window.dbg && window.dbg("Owner fields updated inline!");
+                  } else {
+                    window.dbg && window.dbg("Inline: no addresses");
+                  }
+                } catch(pe) {
+                  window.dbg && window.dbg("Inline parse error: " + pe.message);
+                }
+              }
+            };
+            xhr.onerror = function() {
+              window.dbg && window.dbg("Inline fetch error");
+            };
+            xhr.send();
+            window.dbg && window.dbg("Inline fetch sent");
+          }
         }
         // Check owner fields
         var ownerAddr = document.getElementById("ownerAddress");

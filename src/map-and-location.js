@@ -2,6 +2,7 @@
 // Handles Leaflet map + geolocation + keeping #location in sync.
 
 (function (global) {
+  try {
   // Immediate log to confirm script execution
   if (typeof window.dbg === "function") {
     window.dbg("map-and-location IIFE running");
@@ -380,5 +381,14 @@
   appMapObj.getLastLatLon = getLastLatLon;
   appMapObj.getLastAddressData = getLastAddressData;
   global.AppMap = appMapObj;
+  
+  if (typeof window.dbg === "function") {
+    window.dbg("map-and-location IIFE completed OK");
+  }
+  } catch(e) {
+    if (typeof window.dbg === "function") {
+      window.dbg("map-and-location ERROR: " + e.message + " at line " + (e.line || e.lineNumber || "?"));
+    }
+  }
 })(window);
 

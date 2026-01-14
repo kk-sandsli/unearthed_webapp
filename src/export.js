@@ -3,6 +3,9 @@
 // summary is localized based on localStorage("unearthed-lang")
 
 (function (global) {
+  try {
+  if (typeof window.dbg === "function") window.dbg("export.js IIFE running");
+  
   var PDF_TEMPLATE_URL = "/unearthed/Funnskjema-unlocked.pdf";
   var PDF_LIB_URL = "https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js";
   var LANG_STORAGE_KEY = "unearthed-lang";
@@ -721,5 +724,12 @@
   global.AppExport = {
     saveAsPDF: saveAsPDF
   };
+  
+  if (typeof window.dbg === "function") window.dbg("export.js IIFE completed OK");
+  } catch(e) {
+    if (typeof window.dbg === "function") {
+      window.dbg("export.js ERROR: " + e.message);
+    }
+  }
 })(window);
 

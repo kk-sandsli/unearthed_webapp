@@ -1,5 +1,8 @@
 // i18n.js
 (function (global) {
+  try {
+  if (typeof window.dbg === "function") window.dbg("i18n.js IIFE running");
+  
   var STORAGE_KEY = "unearthed-lang";
 
   var MESSAGES = {
@@ -261,9 +264,16 @@
   // Expose translations for other modules
   global.AppI18n = {
     setLanguage: setLanguage,
-    translations: MESSAGES,
+    translations: MESSAGES
   };
 
   document.addEventListener("DOMContentLoaded", initLanguage);
+  
+  if (typeof window.dbg === "function") window.dbg("i18n.js IIFE completed OK");
+  } catch(e) {
+    if (typeof window.dbg === "function") {
+      window.dbg("i18n.js ERROR: " + e.message);
+    }
+  }
 })(window);
 
