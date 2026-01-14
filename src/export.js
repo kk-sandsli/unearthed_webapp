@@ -321,8 +321,8 @@ try { window.dbg && window.dbg("export.js FILE START"); } catch(e) {}
     var dbg = window.dbg || function(){};
     // Arealtype checkboxes (Check Box 4-11 based on mapping)
     var arealtypeBoxes = ["Check Box4", "Check Box5", "Check Box6", "Check Box7", "Check Box9", "Check Box10", "Check Box11"];
-    // Measuring method checkbox
-    var methodBox = "Check Box12";
+    // Measuring method checkboxes (Check Box 1, 2, 3, 12, 13, etc.)
+    var methodBoxes = ["Check Box1", "Check Box2", "Check Box3", "Check Box8", "Check Box12", "Check Box13", "Check Box14", "Check Box15"];
     // Permission checkbox  
     var permissionBox = "Grunneier har gitt tillatelse _y87rRhfj6A5hS8oITp7knw";
     
@@ -333,10 +333,12 @@ try { window.dbg && window.dbg("export.js FILE START"); } catch(e) {}
       } catch(e) {}
     }
     
-    // Uncheck method box
-    try {
-      form.getCheckBox(methodBox).uncheck();
-    } catch(e) {}
+    // Uncheck method boxes
+    for (var j = 0; j < methodBoxes.length; j++) {
+      try {
+        form.getCheckBox(methodBoxes[j]).uncheck();
+      } catch(e) {}
+    }
     
     // Uncheck permission box
     try {
