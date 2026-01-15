@@ -72,7 +72,7 @@
       labelGnr: "Farm no. (Gnr)",
       phGnr: "Auto-filled from GPS",
       labelBnr: "Holding no. (Bnr)",
-      phBnr: "Auto-filled from GPS",
+      phBnr: "Auto-filled from GPS"
     },
     no: {
       appName: "Unearthed",
@@ -140,7 +140,7 @@
       labelGnr: "Gårdsnummer (Gnr)",
       phGnr: "Hentes fra GPS",
       labelBnr: "Bruksnummer (Bnr)",
-      phBnr: "Hentes fra GPS",
+      phBnr: "Hentes fra GPS"
     },
     es: {
       appName: "Unearthed",
@@ -208,8 +208,8 @@
       labelGnr: "Nº de finca (Gnr)",
       phGnr: "Se rellena desde GPS",
       labelBnr: "Nº de parcela (Bnr)",
-      phBnr: "Se rellena desde GPS",
-    },
+      phBnr: "Se rellena desde GPS"
+    }
   };
 
   function applyTranslations(lang) {
