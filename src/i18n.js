@@ -68,12 +68,12 @@
       emailHint: "Note: to actually send these emails you need a small server-side endpoint.",
       pdfEditHint: "Note: The PDF may not be editable on phones, but will be on a computer.",
       locationSaved: "Location saved ✔",
-      labelKommune: "Municipality",
-      phKommune: "Auto-filled from GPS",
-      labelGnr: "Farm no. (Gnr)",
-      phGnr: "Auto-filled from GPS",
-      labelBnr: "Holding no. (Bnr)",
-      phBnr: "Auto-filled from GPS"
+      labelkommune: "Municipality",
+      phkommune: "Auto-filled from GPS",
+      labelgnr: "Farm no. (Gnr)",
+      phgnr: "Auto-filled from GPS",
+      labelbnr: "Holding no. (Bnr)",
+      phbnr: "Auto-filled from GPS"
     },
     no: {
       appName: "Unearthed",
@@ -137,12 +137,12 @@
       emailHint: "NB: For å sende e-post må vi ha et endepunkt på serveren.",
       pdfEditHint: "Merk: PDF-en kan ikke redigeres på telefon, men fungerer på datamaskin.",
       locationSaved: "Posisjon lagret ✔",
-      labelKommune: "Kommune",
-      phKommune: "Hentes fra GPS",
-      labelGnr: "Gårdsnummer (Gnr)",
-      phGnr: "Hentes fra GPS",
-      labelBnr: "Bruksnummer (Bnr)",
-      phBnr: "Hentes fra GPS"
+      labelkommune: "Kommune",
+      phkommune: "Hentes fra GPS",
+      labelgnr: "Gårdsnummer (Gnr)",
+      phgnr: "Hentes fra GPS",
+      labelbnr: "Bruksnummer (Bnr)",
+      phbnr: "Hentes fra GPS"
     },
     es: {
       appName: "Unearthed",
@@ -206,12 +206,12 @@
       emailHint: "Nota: para enviar correos hace falta un endpoint en el servidor.",
       pdfEditHint: "Nota: El PDF puede no ser editable en teléfonos, pero funcionará en un ordenador.",
       locationSaved: "Ubicación guardada ✔",
-      labelKommune: "Municipio",
-      phKommune: "Se rellena desde GPS",
-      labelGnr: "Nº de finca (Gnr)",
-      phGnr: "Se rellena desde GPS",
-      labelBnr: "Nº de parcela (Bnr)",
-      phBnr: "Se rellena desde GPS"
+      labelkommune: "Municipio",
+      phkommune: "Se rellena desde GPS",
+      labelgnr: "Nº de finca (Gnr)",
+      phgnr: "Se rellena desde GPS",
+      labelbnr: "Nº de parcela (Bnr)",
+      phbnr: "Se rellena desde GPS"
     }
   };
 
@@ -244,9 +244,9 @@
 
     // Safari iOS fallback: directly translate by ID for problematic labels
     var directTranslations = [
-      { id: "labelKommuneEl", key: "labelKommune" },
-      { id: "labelGnrEl", key: "labelGnr" },
-      { id: "labelBnrEl", key: "labelBnr" }
+      { id: "labelKommuneEl", key: "labelkommune" },
+      { id: "labelGnrEl", key: "labelgnr" },
+      { id: "labelBnrEl", key: "labelbnr" }
     ];
     for (var k = 0; k < directTranslations.length; k++) {
       var item = directTranslations[k];
