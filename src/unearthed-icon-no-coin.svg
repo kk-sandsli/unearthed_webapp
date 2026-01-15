@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <!-- Background circle -->
+  <circle cx="50" cy="50" r="48" fill="#2d5016" stroke="#1a3009" stroke-width="2"/>
+  
+  <!-- Ground/earth layer -->
+  <path d="M10 65 Q30 60 50 65 Q70 70 90 65 L90 90 Q70 85 50 90 Q30 85 10 90 Z" fill="#8B4513"/>
+  <path d="M10 70 Q30 65 50 70 Q70 75 90 70 L90 90 Q70 85 50 90 Q30 85 10 90 Z" fill="#654321"/>
+  
+  <!-- Soil texture dots -->
+  <circle cx="25" cy="78" r="2" fill="#4a3520"/>
+  <circle cx="45" cy="82" r="1.5" fill="#4a3520"/>
+  <circle cx="65" cy="76" r="2" fill="#4a3520"/>
+  <circle cx="78" cy="80" r="1.5" fill="#4a3520"/>
+  
+  <!-- Metal detector coil (stylized) -->
+  <ellipse cx="35" cy="55" rx="14" ry="8" fill="none" stroke="#c0c0c0" stroke-width="3"/>
+  <ellipse cx="35" cy="55" rx="10" ry="5" fill="none" stroke="#909090" stroke-width="2"/>
+  
+  <!-- Metal detector shaft -->
+  <line x1="45" y1="50" x2="72" y2="22" stroke="#404040" stroke-width="4" stroke-linecap="round"/>
+  <line x1="45" y1="50" x2="72" y2="22" stroke="#606060" stroke-width="2" stroke-linecap="round"/>
+  
+  <!-- Detector handle -->
+  <rect x="68" y="16" width="12" height="8" rx="2" fill="#404040" transform="rotate(-40 74 20)"/>
+  
+  <!-- Discovery sparkle/signal waves -->
+  <path d="M55 62 Q58 58 55 54" fill="none" stroke="#FFD700" stroke-width="2" stroke-linecap="round"/>
+  <path d="M60 65 Q65 58 60 51" fill="none" stroke="#FFD700" stroke-width="2" stroke-linecap="round"/>
+  <path d="M65 68 Q72 58 65 48" fill="none" stroke="#FFD700" stroke-width="2" stroke-linecap="round"/>
+</svg>
