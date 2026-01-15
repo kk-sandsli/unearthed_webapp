@@ -622,45 +622,175 @@ try { window.dbg && window.dbg("export.js FILE START"); } catch(e) {}
         // Embed photos sequentially
         var photoChain = Promise.resolve();
         
-        // First photo on summary page
-        if (photoDataURLs.length > 0) {
-          photoChain = embedImage(pdfDoc, photoDataURLs[0]).then(function(img) {
-            var targetWidth = width - 80;
-            var factor = targetWidth / img.width;
-            var targetHeight = img.height * factor;
-            var imgY = 80;
-            summaryPage.drawImage(img, {
-              x: left, y: imgY, width: targetWidth, height: targetHeight
+        // Calculate available space below text for first image
+        var textBottomY = y; // Current Y position after all text
+        var minImageHeight = 150; // Minimum useful image height
+        var maxImageHeight = 350; // Max height (about half page)
+        var bottomMargin = 50;
+        var availableHeight = textBottomY - bottomMargin;
+        var startPhotosOnNewPage = availableHeight < minImageHeight;
+        
+        // Helper to calculate image dimensions with rotation if needed
+        function calcImageDims(img, maxW, maxH) {
+          var imgW = img.width;
+          var imgH = img.height;
+          var rotate = false;
+          
+          // If image is portrait (taller than wide) and very tall, rotate to landscape
+          if (imgH > imgW * 1.3) {
+            // Swap dimensions for rotation
+            var temp = imgW;
+            imgW = imgH;
+            imgH = temp;
+            rotate = true;
+          }
+          
+          // Scale to fit within max dimensions
+          var scaleW = maxW / imgW;
+          var scaleH = maxH / imgH;
+          var scale = Math.min(scaleW, scaleH, 1); // Don't upscale
+          
+          return {
+            width: imgW * scale,
+            height: imgH * scale,
+            rotate: rotate,
+            origWidth: img.width,
+            origHeight: img.height
+          };
+        }
+        
+        // Helper to draw image with optional rotation
+        function drawImageWithRotation(page, img, x, y, dims, rgb, caption) {
+          if (dims.rotate) {
+            // For rotated images, we need to translate and rotate
+            // pdf-lib doesn't have direct rotation, so we draw normally but scaled
+            // The image will appear landscape
+            page.drawImage(img, {
+              x: x,
+              y: y,
+              width: dims.width,
+              height: dims.height,
+              rotate: { type: "degrees", angle: 90 }
             });
-            summaryPage.drawText((L.photo || "Photo") + " 1", {
-              x: left, y: imgY - 12, size: 9, color: rgb(0.2, 0.2, 0.2)
+          } else {
+            page.drawImage(img, {
+              x: x,
+              y: y,
+              width: dims.width,
+              height: dims.height
             });
+          }
+          // Caption below image
+          page.drawText(caption, {
+            x: x,
+            y: y - 14,
+            size: 9,
+            color: rgb(0.2, 0.2, 0.2)
           });
         }
-
-        // Additional photos on separate pages
-        for (var photoIdx = 1; photoIdx < photoDataURLs.length; photoIdx++) {
-          (function(idx) {
-            photoChain = photoChain.then(function() {
-              return embedImage(pdfDoc, photoDataURLs[idx]).then(function(pimg) {
-                var page = pdfDoc.addPage([595.28, 841.89]);
-                var psize = page.getSize();
-                var pw = psize.width;
-                var ph = psize.height;
-                var ptargetWidth = pw - 80;
-                var pfactor = ptargetWidth / pimg.width;
-                var ptargetHeight = pimg.height * pfactor;
-                var pimgY = (ph - ptargetHeight) / 2;
-                page.drawImage(pimg, {
-                  x: 40, y: pimgY, width: ptargetWidth, height: ptargetHeight
+        
+        // Process all photos - 2 per page
+        var photoIndex = 0;
+        var currentPhotoPage = null;
+        var photoYPosition = 0;
+        var photosOnCurrentPage = 0;
+        var pageWidth = width;
+        var pageHeight = height;
+        var photoMaxWidth = pageWidth - 80;
+        var photoMaxHeight = maxImageHeight;
+        
+        // First photo handling
+        if (photoDataURLs.length > 0 && !startPhotosOnNewPage) {
+          // Try to fit first photo on summary page
+          photoChain = embedImage(pdfDoc, photoDataURLs[0]).then(function(img) {
+            var dims = calcImageDims(img, photoMaxWidth, Math.min(availableHeight - 20, photoMaxHeight));
+            var imgY = textBottomY - dims.height - 10;
+            
+            if (imgY > bottomMargin) {
+              // Fits on summary page
+              if (dims.rotate) {
+                summaryPage.drawImage(img, {
+                  x: left + dims.height,
+                  y: imgY,
+                  width: dims.width,
+                  height: dims.height,
+                  rotate: global.PDFLib.degrees(90)
                 });
-                page.drawText((L.photo || "Photo") + " " + (idx + 1), {
-                  x: 40, y: pimgY - 14, size: 10, color: rgb(0.2, 0.2, 0.2)
+              } else {
+                summaryPage.drawImage(img, {
+                  x: left,
+                  y: imgY,
+                  width: dims.width,
+                  height: dims.height
                 });
+              }
+              summaryPage.drawText((L.photo || "Photo") + " 1", {
+                x: left,
+                y: imgY - 14,
+                size: 9,
+                color: rgb(0.2, 0.2, 0.2)
               });
-            });
-          })(photoIdx);
+              photoIndex = 1;
+            }
+          });
         }
+        
+        // Remaining photos - 2 per page
+        function addRemainingPhotos() {
+          if (photoIndex >= photoDataURLs.length) {
+            return Promise.resolve();
+          }
+          
+          return embedImage(pdfDoc, photoDataURLs[photoIndex]).then(function(img) {
+            var dims = calcImageDims(img, photoMaxWidth, photoMaxHeight);
+            
+            // Need new page?
+            if (!currentPhotoPage || photosOnCurrentPage >= 2) {
+              currentPhotoPage = pdfDoc.addPage([595.28, 841.89]);
+              photoYPosition = pageHeight - 50;
+              photosOnCurrentPage = 0;
+            }
+            
+            // Calculate Y position
+            var imgY = photoYPosition - dims.height;
+            
+            // Draw the image
+            if (dims.rotate) {
+              currentPhotoPage.drawImage(img, {
+                x: left + dims.height,
+                y: imgY,
+                width: dims.width,
+                height: dims.height,
+                rotate: global.PDFLib.degrees(90)
+              });
+            } else {
+              currentPhotoPage.drawImage(img, {
+                x: left,
+                y: imgY,
+                width: dims.width,
+                height: dims.height
+              });
+            }
+            
+            // Caption
+            currentPhotoPage.drawText((L.photo || "Photo") + " " + (photoIndex + 1), {
+              x: left,
+              y: imgY - 14,
+              size: 9,
+              color: rgb(0.2, 0.2, 0.2)
+            });
+            
+            // Update position for next image
+            photoYPosition = imgY - 30; // Gap between images
+            photosOnCurrentPage++;
+            photoIndex++;
+            
+            // Recurse for next photo
+            return addRemainingPhotos();
+          });
+        }
+        
+        photoChain = photoChain.then(addRemainingPhotos);
 
         return photoChain.then(function() {
           return { pdfDoc: pdfDoc, form: ctx.form };
