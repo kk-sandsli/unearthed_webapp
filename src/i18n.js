@@ -278,7 +278,26 @@
     translations: MESSAGES
   };
 
-  document.addEventListener("DOMContentLoaded", initLanguage);
+  // Use multiple strategies to ensure translations apply on Safari iOS
+  // 1. DOMContentLoaded for most browsers
+  // 2. Additional setTimeout fallback for Safari iOS timing issues
+  function safeInitLanguage() {
+    initLanguage();
+    // Re-apply after a short delay to catch any elements Safari iOS missed
+    setTimeout(function() {
+      var dbg = window.dbg || function(){};
+      dbg("[i18n] Safari fallback re-apply");
+      var saved = localStorage.getItem(STORAGE_KEY) || "no";
+      applyTranslations(saved);
+    }, 100);
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", safeInitLanguage);
+  } else {
+    // DOM already loaded (script loaded async or deferred)
+    safeInitLanguage();
+  }
   
   if (typeof window.dbg === "function") window.dbg("i18n.js IIFE completed OK");
   } catch(e) {
