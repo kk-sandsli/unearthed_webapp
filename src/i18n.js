@@ -242,6 +242,20 @@
       }
     }
 
+    // Safari iOS fallback: directly translate by ID for problematic labels
+    var directTranslations = [
+      { id: "labelKommuneEl", key: "labelKommune" },
+      { id: "labelGnrEl", key: "labelGnr" },
+      { id: "labelBnrEl", key: "labelBnr" }
+    ];
+    for (var k = 0; k < directTranslations.length; k++) {
+      var item = directTranslations[k];
+      var el = document.getElementById(item.id);
+      if (el && dict[item.key]) {
+        el.textContent = dict[item.key];
+      }
+    }
+
     // top-right label
     var label = document.getElementById("langLabel");
     if (label) label.textContent = (lang || "en").toUpperCase();
