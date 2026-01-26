@@ -252,6 +252,22 @@
       margin-top: 0;
     }
 
+    /* Two-column row for Gnr/Bnr fields */
+    .gnr-bnr-row {
+      display: flex;
+      gap: 1rem;
+    }
+    .gnr-bnr-row > div {
+      flex: 1;
+    }
+    .gnr-bnr-row label {
+      display: block;
+    }
+    .gnr-bnr-row input {
+      width: 100%;
+      box-sizing: border-box;
+    }
+
     /* Address marker icon (prevents default Leaflet icon styling) */
     .address-marker {
       background: transparent;
@@ -349,22 +365,40 @@
       <h3 data-i18n="ownerTitle">Land owner</h3>
       <label for="ownerName" data-i18n="labelName">Name</label>
       <input type="text" id="ownerName" data-i18n-placeholder="phOwnerName" />
-      <label for="ownerAddress" data-i18n="labelAddress">Address</label>
-      <input type="text" id="ownerAddress" data-i18n-placeholder="phAddress" />
       <label for="ownerPhone" data-i18n="labelPhone">Telephone</label>
       <input type="text" id="ownerPhone" data-i18n-placeholder="phPhone" />
       <label for="ownerEmail" data-i18n="labelEmail">Email</label>
       <input type="email" id="ownerEmail" data-i18n-placeholder="phEmail" />
+      <label for="ownerAddress" data-i18n="labelAddress">Address</label>
+      <input type="text" id="ownerAddress" data-i18n-placeholder="phAddress" />
       <label for="ownerKommune" id="labelKommuneEl" data-i18n="labelkommune">Municipality</label>
       <input type="text" id="ownerKommune" autocomplete="off" data-i18n-placeholder="phkommune" />
-      <label for="ownerGnr" id="labelGnrEl" data-i18n="labelgnr">Farm no. (Gnr)</label>
-      <input type="text" id="ownerGnr" autocomplete="off" data-i18n-placeholder="phgnr" />
-      <label for="ownerBnr" id="labelBnrEl" data-i18n="labelbnr">Holding no. (Bnr)</label>
-      <input type="text" id="ownerBnr" autocomplete="off" data-i18n-placeholder="phbnr" />
+      <div class="gnr-bnr-row">
+        <div>
+          <label for="ownerGnr" id="labelGnrEl" data-i18n="labelgnr">Farm no. (Gnr)</label>
+          <input type="text" id="ownerGnr" autocomplete="off" data-i18n-placeholder="phgnr" />
+        </div>
+        <div>
+          <label for="ownerBnr" id="labelBnrEl" data-i18n="labelbnr">Holding no. (Bnr)</label>
+          <input type="text" id="ownerBnr" autocomplete="off" data-i18n-placeholder="phbnr" />
+        </div>
+      </div>
     </div>
   </div>
 
   <form id="findForm" onsubmit="event.preventDefault();">
+    <div id="map"></div>
+
+    <button type="button" onclick="useCurrentLocation()" data-i18n="btnUseLocation">
+      Use current location
+    </button>
+
+    <label for="location" data-i18n="labelLocation">Location</label>
+    <div class="location-row">
+      <input type="text" id="location" readonly required data-i18n-placeholder="phLocation" />
+      <button type="button" id="coordToggle" class="coord-toggle" onclick="toggleCoordSystem()" title="Click to toggle coordinate system">UTM32</button>
+    </div>
+
     <label for="objectName" data-i18n="labelObjectName">Object Name</label>
     <input type="text" id="objectName" required data-i18n-placeholder="phObjectName" />
 
@@ -397,17 +431,6 @@
 
     <label for="findDepth" data-i18n="labelDepth">Funndybde (cm)</label>
     <input type="number" id="findDepth" min="0" step="1" data-i18n-placeholder="phDepth" />
-
-    <label for="location" data-i18n="labelLocation">Location</label>
-    <div class="location-row">
-      <input type="text" id="location" readonly required data-i18n-placeholder="phLocation" />
-      <button type="button" id="coordToggle" class="coord-toggle" onclick="toggleCoordSystem()" title="Click to toggle coordinate system">UTM32</button>
-    </div>
-    <button type="button" onclick="useCurrentLocation()" data-i18n="btnUseLocation">
-      Use current location
-    </button>
-
-    <div id="map"></div>
 
     <label for="photo" data-i18n="labelPhoto">Upload Photo</label>
     <input type="file" id="photo" accept="image/*" multiple />
