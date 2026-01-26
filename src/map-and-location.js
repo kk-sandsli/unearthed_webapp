@@ -536,30 +536,6 @@
         clearAddressMarker();
       }
     });
-
-    // small status line
-    var status = document.getElementById("locationStatus");
-    if (!status) {
-      status = document.createElement("div");
-      status.id = "locationStatus";
-      status.style.fontSize = "0.8rem";
-      status.style.marginTop = "0.3rem";
-      var locInput = document.getElementById("location");
-      if (locInput && locInput.parentNode) {
-        locInput.parentNode.insertBefore(status, locInput.nextSibling);
-      } else {
-        document.body.appendChild(status);
-      }
-    }
-    // Use correct storage key matching i18n.js
-    var lang = localStorage.getItem("unearthed-lang") || "no";
-    var t = "Posisjon lagret ✔";
-    if (global.AppI18n && global.AppI18n.translations && 
-        global.AppI18n.translations[lang] && 
-        global.AppI18n.translations[lang].locationSaved) {
-      t = global.AppI18n.translations[lang].locationSaved;
-    }
-    status.textContent = t;
   }
 
   function setMarker(lat, lon) {

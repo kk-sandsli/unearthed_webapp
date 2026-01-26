@@ -144,9 +144,17 @@
     .container {
       max-width: 1100px;
       margin: auto;
-      padding: 1.5rem 1rem 4rem 1rem;
+      padding: 1rem 1rem 4rem 1rem;
       background: var(--surface);
       min-height: 100vh;
+    }
+    h2 {
+      margin-top: 0;
+      margin-bottom: 0.3em;
+    }
+    h3 {
+      margin-top: 0;
+      margin-bottom: 0.4em;
     }
     label {
       display: block;
@@ -188,7 +196,7 @@
       background: #2f4f4f;
     }
     #map {
-      height: 250px;
+      height: 300px;
       margin-top: 1em;
       border-radius: 7px;
       overflow: hidden;
@@ -388,9 +396,12 @@
 
   <form id="findForm" onsubmit="event.preventDefault();">
     <div id="map"></div>
+    <p class="map-hint" style="font-size: 0.85em; color: #666; margin-top: 0.5em;" data-i18n="mapHint">
+      Tap the map to select location, or use the button below for GPS. Blue marker shows find location, green circle shows nearest address.
+    </p>
 
     <button type="button" onclick="useCurrentLocation()" data-i18n="btnUseLocation">
-      Use current location
+      Use current GPS location
     </button>
 
     <label for="location" data-i18n="labelLocation">Location</label>
@@ -891,10 +902,6 @@ window.dbg && window.dbg("saveAsPDF exists: " + (typeof window.saveAsPDF !== "un
       window.AppMap.clearAddressMarker();
       dbg("[reset] Address marker cleared");
     }
-    
-    // Clear location status text
-    var status = document.getElementById("locationStatus");
-    if (status) status.textContent = "";
     
     dbg("[reset] Form reset complete");
   }

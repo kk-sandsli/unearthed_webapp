@@ -60,12 +60,12 @@
       labelNotes: "Notes",
       phNotes: "Context, associated finds, depth, etc.",
 
-      btnUseLocation: "Use current location",
+      btnUseLocation: "Use current GPS location",
       btnDownload: "Download official form (filled)",
       btnReset: "Reset",
 
+      mapHint: "Tap the map to select location, or use the button below for GPS. Blue marker shows find location, green circle shows nearest address.",
       pdfEditHint: "Note: The PDF may not be editable on phones, but will be on a computer.",
-      locationSaved: "Location saved ✔",
       labelkommune: "Municipality",
       phkommune: "Auto-filled from GPS",
       labelgnr: "Farm no. (Gnr)",
@@ -127,12 +127,12 @@
       labelNotes: "Notater",
       phNotes: "Kontekst, tilknyttede funn, dybde osv.",
 
-      btnUseLocation: "Bruk nåværende posisjon",
+      btnUseLocation: "Bruk nåværende GPS-posisjon",
       btnDownload: "Last ned utfylt skjema",
       btnReset: "Nullstill",
 
+      mapHint: "Trykk på kartet for å velge posisjon, eller bruk knappen under for GPS. Blå markør viser funnsted, grønn sirkel viser nærmeste adresse.",
       pdfEditHint: "Merk: PDF-en kan ikke redigeres på telefon, men fungerer på datamaskin.",
-      locationSaved: "Posisjon lagret ✔",
       labelkommune: "Kommune",
       phkommune: "Hentes fra GPS",
       labelgnr: "Gårdsnummer (Gnr)",
@@ -194,12 +194,12 @@
       labelNotes: "Notas",
       phNotes: "Contexto, hallazgos asociados, profundidad, etc.",
 
-      btnUseLocation: "Usar ubicación actual",
+      btnUseLocation: "Usar ubicación GPS actual",
       btnDownload: "Descargar formulario oficial (relleno)",
       btnReset: "Restablecer",
 
+      mapHint: "Toca el mapa para seleccionar ubicación, o usa el botón de abajo para GPS. El marcador azul muestra la ubicación del hallazgo, el círculo verde muestra la dirección más cercana.",
       pdfEditHint: "Nota: El PDF puede no ser editable en teléfonos, pero funcionará en un ordenador.",
-      locationSaved: "Ubicación guardada ✔",
       labelkommune: "Municipio",
       phkommune: "Se rellena desde GPS",
       labelgnr: "Nº de finca (Gnr)",
