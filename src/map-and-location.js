@@ -216,6 +216,14 @@
    */
   function updateOwnerFieldsFromAddress(addressData) {
     if (!addressData) return;
+    
+    // Check if auto-fill is enabled
+    var autoFillCheckbox = document.getElementById("autoFillAddress");
+    if (autoFillCheckbox && !autoFillCheckbox.checked) {
+      log("updateOwnerFieldsFromAddress skipped - auto-fill disabled");
+      return;
+    }
+    
     log("updateOwnerFieldsFromAddress called");
 
     // Build full address string from components
@@ -263,6 +271,13 @@
    * Clear all owner address fields (when no address is found).
    */
   function clearOwnerFields() {
+    // Check if auto-fill is enabled
+    var autoFillCheckbox = document.getElementById("autoFillAddress");
+    if (autoFillCheckbox && !autoFillCheckbox.checked) {
+      log("clearOwnerFields skipped - auto-fill disabled");
+      return;
+    }
+    
     log("clearOwnerFields called");
     var fields = ["ownerAddress", "ownerKommune", "ownerGnr", "ownerBnr"];
     for (var i = 0; i < fields.length; i++) {
@@ -303,6 +318,13 @@
     if (addressCircle && map) {
       map.removeLayer(addressCircle);
       addressCircle = null;
+    }
+    
+    // Check if auto-fill is enabled
+    var autoFillCheckbox = document.getElementById("autoFillAddress");
+    if (autoFillCheckbox && !autoFillCheckbox.checked) {
+      dbg("[addrMarker] Auto-fill disabled - not showing marker");
+      return;
     }
     
     // Check if feature is enabled and we have valid data

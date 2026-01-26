@@ -14,7 +14,8 @@
 
       finderTitle: "Finder",
       ownerTitle: "Land owner",
-      labelApproval: "Approved",
+      labelApproval: "Search approved",
+      labelAutoFill: "Auto-fill from map",
 
       labelName: "Name",
       labelAddress: "Address",
@@ -82,7 +83,8 @@
 
       finderTitle: "Finner",
       ownerTitle: "Grunneier",
-      labelApproval: "Godkjent",
+      labelApproval: "Godkjent søk",
+      labelAutoFill: "Hent fra kart",
 
       labelName: "Navn",
       labelAddress: "Adresse",
@@ -150,7 +152,8 @@
 
       finderTitle: "Descubridor",
       ownerTitle: "Propietario del terreno",
-      labelApproval: "Aprobado",
+      labelApproval: "Búsqueda aprobada",
+      labelAutoFill: "Autocompletar desde mapa",
 
       labelName: "Nombre",
       labelAddress: "Dirección",

@@ -161,6 +161,9 @@
       justify-content: space-between;
       align-items: center;
     }
+    .section-header > label:first-child {
+      margin-top: 0;
+    }
     .approval-check {
       display: flex;
       align-items: center;
@@ -391,7 +394,7 @@
         <h3 data-i18n="ownerTitle">Land owner</h3>
         <label class="approval-check">
           <input type="checkbox" id="ownerApproval" />
-          <span data-i18n="labelApproval">Approved</span>
+          <span data-i18n="labelApproval">Search approved</span>
         </label>
       </div>
       <label for="ownerName" data-i18n="labelName">Name</label>
@@ -400,7 +403,13 @@
       <input type="text" id="ownerPhone" data-i18n-placeholder="phPhone" />
       <label for="ownerEmail" data-i18n="labelEmail">Email</label>
       <input type="email" id="ownerEmail" data-i18n-placeholder="phEmail" />
-      <label for="ownerAddress" data-i18n="labelAddress">Address</label>
+      <div class="section-header">
+        <label for="ownerAddress" data-i18n="labelAddress">Address</label>
+        <label class="approval-check">
+          <input type="checkbox" id="autoFillAddress" checked />
+          <span data-i18n="labelAutoFill">Auto-fill from map</span>
+        </label>
+      </div>
       <input type="text" id="ownerAddress" data-i18n-placeholder="phAddress" />
       <label for="ownerKommune" id="labelKommuneEl" data-i18n="labelkommune">Municipality</label>
       <input type="text" id="ownerKommune" autocomplete="off" data-i18n-placeholder="phkommune" />
