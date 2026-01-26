@@ -326,8 +326,6 @@ try { window.dbg && window.dbg("export.js FILE START"); } catch(e) {}
     var depth = getVal("findDepth");
     var locationStr = getVal("location");
     var notes = getVal("notes");
-    var emailFinder = getChecked("emailFinder");
-    var emailOwner = getChecked("emailOwner");
 
     // Read photo files
     var photoInput = $("photo");
@@ -858,25 +856,6 @@ try { window.dbg && window.dbg("export.js FILE START"); } catch(e) {}
         link.click();
         link.remove();
         URL.revokeObjectURL(link.href);
-
-        // Email hook
-        if (emailFinder || emailOwner) {
-          var pdfBase64 = bytesToBase64(new Uint8Array(pdfBytes));
-          var payload = {
-            lang: lang,
-            finder: finder,
-            owner: owner,
-            object: { name: objName, type: objType, material: material, age: age },
-            arealtype: arealtype,
-            depth: depth,
-            location: locationStr,
-            notes: notes,
-            wants: { finder: emailFinder, owner: emailOwner },
-            pdfBase64: pdfBase64,
-            filename: "funnskjema-utfylt.pdf"
-          };
-          console.log("Email requested – send this payload to your server:", payload);
-        }
         
         dbg("[export] PDF generation complete");
       })

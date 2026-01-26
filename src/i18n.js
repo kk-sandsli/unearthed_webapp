@@ -63,9 +63,6 @@
       btnUseLocation: "Use current location",
       btnDownload: "Download official form (filled)",
 
-      cbEmailFinder: "Send copy (data + PDF) to finder",
-      cbEmailOwner: "Send copy (data + PDF) to land owner",
-      emailHint: "Note: to actually send these emails you need a small server-side endpoint.",
       pdfEditHint: "Note: The PDF may not be editable on phones, but will be on a computer.",
       locationSaved: "Location saved ✔",
       labelkommune: "Municipality",
@@ -132,9 +129,6 @@
       btnUseLocation: "Bruk nåværende posisjon",
       btnDownload: "Last ned utfylt skjema",
 
-      cbEmailFinder: "Send kopi (data + PDF) til finner",
-      cbEmailOwner: "Send kopi (data + PDF) til grunneier",
-      emailHint: "NB: For å sende e-post må vi ha et endepunkt på serveren.",
       pdfEditHint: "Merk: PDF-en kan ikke redigeres på telefon, men fungerer på datamaskin.",
       locationSaved: "Posisjon lagret ✔",
       labelkommune: "Kommune",
@@ -201,9 +195,6 @@
       btnUseLocation: "Usar ubicación actual",
       btnDownload: "Descargar formulario oficial (relleno)",
 
-      cbEmailFinder: "Enviar copia (datos + PDF) al descubridor",
-      cbEmailOwner: "Enviar copia (datos + PDF) al propietario",
-      emailHint: "Nota: para enviar correos hace falta un endpoint en el servidor.",
       pdfEditHint: "Nota: El PDF puede no ser editable en teléfonos, pero funcionará en un ordenador.",
       locationSaved: "Ubicación guardada ✔",
       labelkommune: "Municipio",

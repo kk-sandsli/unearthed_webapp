@@ -13,6 +13,13 @@
   var lastLatLon = null;
   var lastAddressData = null; // Store address data from Geonorge API
 
+  // Address marker and circle (shows nearest address location)
+  var addressMarker = null;
+  var addressCircle = null;
+  
+  // Feature flag: set to false to disable address marker/circle display
+  var SHOW_ADDRESS_MARKER = true;
+
   // Coordinate system: "utm32" or "wgs84"
   var COORD_STORAGE_KEY = "unearthed-coord-system";
   var coordSystem = "utm32"; // Default to UTM32
@@ -250,6 +257,115 @@
   }
 
   /**
+   * Create custom address marker icon (green dot)
+   */
+  function createAddressIcon() {
+    if (!global.L) return null;
+    return L.divIcon({
+      className: 'address-marker',
+      html: '<div style="background:#4CAF50;width:14px;height:14px;border-radius:50%;border:3px solid #2E7D32;box-shadow:0 0 8px rgba(76,175,80,0.5);"></div>',
+      iconSize: [14, 14],
+      iconAnchor: [7, 7]
+    });
+  }
+
+  /**
+   * Update the address marker and distance circle on the map.
+   * Shows the location of the nearest address and a circle indicating the distance.
+   * Can be disabled by setting SHOW_ADDRESS_MARKER = false.
+   */
+  function updateAddressMarker(addressData) {
+    var dbg = window.dbg || function(){};
+    
+    // Remove existing marker and circle
+    if (addressMarker && map) {
+      map.removeLayer(addressMarker);
+      addressMarker = null;
+    }
+    if (addressCircle && map) {
+      map.removeLayer(addressCircle);
+      addressCircle = null;
+    }
+    
+    // Check if feature is enabled and we have valid data
+    if (!SHOW_ADDRESS_MARKER || !map || !global.L) {
+      dbg("[addrMarker] Feature disabled or no map");
+      return;
+    }
+    
+    if (!addressData || !addressData.adresseLat || !addressData.adresseLon) {
+      dbg("[addrMarker] No address coordinates available");
+      return;
+    }
+    
+    var addrLat = addressData.adresseLat;
+    var addrLon = addressData.adresseLon;
+    var distance = addressData.distanse;
+    
+    dbg("[addrMarker] Adding marker at " + addrLat.toFixed(4) + ", " + addrLon.toFixed(4));
+    
+    // Create the distance circle (dashed green)
+    if (distance && distance > 0) {
+      addressCircle = L.circle([addrLat, addrLon], {
+        radius: distance,
+        color: '#4CAF50',
+        fillColor: '#4CAF50',
+        fillOpacity: 0.1,
+        weight: 2,
+        dashArray: '5, 5'
+      }).addTo(map);
+      dbg("[addrMarker] Circle added, radius: " + distance.toFixed(0) + "m");
+    }
+    
+    // Build popup content (compact for mobile)
+    var popupContent = '<div style="font-size:13px;max-width:200px;">';
+    popupContent += '<strong style="color:#2E7D32;">Nearest address</strong><br>';
+    popupContent += addressData.adressetekst || "";
+    if (addressData.postnummer || addressData.poststed) {
+      popupContent += '<br>' + (addressData.postnummer || "") + ' ' + (addressData.poststed || "");
+    }
+    if (addressData.kommunenavn) {
+      popupContent += '<br><span style="color:#666;">' + addressData.kommunenavn + '</span>';
+    }
+    if (addressData.gardsnummer || addressData.bruksnummer) {
+      popupContent += '<br><span style="color:#888;font-size:11px;">Gnr/Bnr: ' + 
+        (addressData.gardsnummer || "-") + '/' + (addressData.bruksnummer || "-") + '</span>';
+    }
+    if (distance) {
+      popupContent += '<br><span style="color:#888;font-size:11px;">Distance: ' + 
+        Math.round(distance) + ' m</span>';
+    }
+    popupContent += '</div>';
+    
+    // Create address marker with popup
+    var addrIcon = createAddressIcon();
+    if (addrIcon) {
+      addressMarker = L.marker([addrLat, addrLon], { icon: addrIcon })
+        .addTo(map)
+        .bindPopup(popupContent, {
+          maxWidth: 220,
+          closeButton: true,
+          autoClose: true
+        });
+      dbg("[addrMarker] Marker added");
+    }
+  }
+
+  /**
+   * Clear the address marker and circle from the map.
+   */
+  function clearAddressMarker() {
+    if (addressMarker && map) {
+      map.removeLayer(addressMarker);
+      addressMarker = null;
+    }
+    if (addressCircle && map) {
+      map.removeLayer(addressCircle);
+      addressCircle = null;
+    }
+  }
+
+  /**
    * Fetch address data from Geonorge API based on coordinates.
    * Uses XMLHttpRequest for better Safari compatibility.
    */
@@ -309,6 +425,13 @@
           if (data.adresser && data.adresser.length > 0) {
             var addr = data.adresser[0];
             dbg("[fetch] got: " + (addr.adressetekst || "(none)"));
+            // Extract address coordinates from representasjonspunkt
+            var addrLat = null;
+            var addrLon = null;
+            if (addr.representasjonspunkt) {
+              addrLat = addr.representasjonspunkt.lat || null;
+              addrLon = addr.representasjonspunkt.lon || null;
+            }
             safeCallback({
               adressetekst: addr.adressetekst || "",
               kommunenavn: addr.kommunenavn || "",
@@ -317,7 +440,9 @@
               bruksnummer: addr.bruksnummer || "",
               postnummer: addr.postnummer || "",
               poststed: addr.poststed || "",
-              distanse: addr.meterDistanseTilPunkt || null
+              distanse: addr.meterDistanseTilPunkt || null,
+              adresseLat: addrLat,
+              adresseLon: addrLon
             });
           } else {
             dbg("[fetch] no addresses");
@@ -384,9 +509,13 @@
       if (addressData) {
         dbg("[updateLoc] updating owner fields");
         updateOwnerFieldsFromAddress(addressData);
+        // Show address marker and distance circle on map
+        updateAddressMarker(addressData);
       } else {
         dbg("[updateLoc] clearing owner fields");
         clearOwnerFields();
+        // Clear address marker when no address found
+        clearAddressMarker();
       }
     });
 

@@ -185,30 +185,7 @@
       border-radius: 10px;
       padding: 1rem .9rem 1.1rem .9rem;
     }
-    .email-options {
-      margin-top: 1.1rem;
-      background: #f7f7f7;
-      padding: 0.7em 0.8em;
-      border-radius: 7px;
-      border: 1px solid rgba(0,0,0,.03);
-    }
-    .email-options label {
-      font-weight: normal;
-      display: flex;
-      align-items: center;
-      gap: 0.5em;
-      margin-top: 0.4em;
-    }
-    .email-options input[type="checkbox"] {
-      width: auto;
-      display: inline-block;
-      margin: 0;
-    }
-    .email-hint {
-      font-size: 0.7rem;
-      color: #555;
-      margin-top: 0.5em;
-    }
+
     @media (max-width: 700px) {
       .container {
         padding-inline: .8rem;
@@ -250,6 +227,12 @@
     .location-row input {
       flex: 1;
       margin-top: 0;
+    }
+
+    /* Address marker icon (prevents default Leaflet icon styling) */
+    .address-marker {
+      background: transparent;
+      border: none;
     }
   </style>
 </head>
@@ -375,19 +358,7 @@
       Note: The PDF may not be editable on phones, but will be on a computer.
     </p>
 
-    <div class="email-options">
-      <label>
-        <input type="checkbox" id="emailFinder" />
-        <span data-i18n="cbEmailFinder">Send copy (data + PDF) to finder</span>
-      </label>
-      <label>
-        <input type="checkbox" id="emailOwner" />
-        <span data-i18n="cbEmailOwner">Send copy (data + PDF) to land owner</span>
-      </label>
-      <p class="email-hint" data-i18n="emailHint">
-        NB: To send email you still need a small server endpoint.
-      </p>
-    </div>
+
   </form>
 </div>
 
