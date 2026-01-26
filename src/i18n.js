@@ -62,6 +62,7 @@
 
       btnUseLocation: "Use current location",
       btnDownload: "Download official form (filled)",
+      btnReset: "Reset",
 
       pdfEditHint: "Note: The PDF may not be editable on phones, but will be on a computer.",
       locationSaved: "Location saved ✔",
@@ -128,6 +129,7 @@
 
       btnUseLocation: "Bruk nåværende posisjon",
       btnDownload: "Last ned utfylt skjema",
+      btnReset: "Nullstill",
 
       pdfEditHint: "Merk: PDF-en kan ikke redigeres på telefon, men fungerer på datamaskin.",
       locationSaved: "Posisjon lagret ✔",
@@ -194,6 +196,7 @@
 
       btnUseLocation: "Usar ubicación actual",
       btnDownload: "Descargar formulario oficial (relleno)",
+      btnReset: "Restablecer",
 
       pdfEditHint: "Nota: El PDF puede no ser editable en teléfonos, pero funcionará en un ordenador.",
       locationSaved: "Ubicación guardada ✔",

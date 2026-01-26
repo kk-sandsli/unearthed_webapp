@@ -73,6 +73,29 @@
     }
 
     /* Language dropdown (discrete, top right) */
+    .topbar-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 0.3rem;
+    }
+    .topbar-btn {
+      background: rgba(0,0,0,0.03);
+      border: 1px solid rgba(0,0,0,0.06);
+      border-radius: 999px;
+      padding: .2rem .6rem;
+      font-size: .78rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: .35rem;
+      color: #111;
+      width: auto;
+      margin: 0;
+    }
+    .topbar-btn:hover {
+      background: rgba(0,0,0,0.08);
+    }
     .lang-toggle {
       position: relative;
     }
@@ -234,6 +257,43 @@
       background: transparent;
       border: none;
     }
+
+    /* Inline clear buttons for input fields */
+    .input-clearable {
+      position: relative;
+      display: block;
+      width: 100%;
+    }
+    .input-clearable input,
+    .input-clearable textarea {
+      padding-right: 2em;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .clear-field-btn {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: #aaa;
+      font-size: 1.1rem;
+      cursor: pointer;
+      padding: 0 4px;
+      width: auto;
+      margin: 0;
+      display: none;
+      line-height: 1;
+    }
+    .clear-field-btn:hover {
+      color: #666;
+    }
+    /* For textarea, position at top-right */
+    .input-clearable.textarea-wrap .clear-field-btn {
+      top: 12px;
+      transform: none;
+    }
   </style>
 </head>
 <body>
@@ -248,14 +308,19 @@
       <span class="brand-sub" data-i18n="appTagline">Find reporting for detectorists - A prototype webapp by Kodeklubben Sandsli</span>
     </div>
   </div>
-  <div class="lang-toggle" id="langToggle">
-    <button type="button" class="lang-current" id="langCurrent" aria-label="Change language">
-      🌐 <span id="langLabel">EN</span>
+  <div class="topbar-right">
+    <button type="button" class="topbar-btn" id="resetBtn" onclick="resetForm()" aria-label="Reset form">
+      ↺ <span data-i18n="btnReset">Reset</span>
     </button>
-    <div class="lang-menu" aria-label="Language menu">
-      <button type="button" data-lang="en" onclick="setLanguageFromTopbar('en')">English</button>
-      <button type="button" data-lang="no" onclick="setLanguageFromTopbar('no')">Norsk</button>
-      <button type="button" data-lang="es" onclick="setLanguageFromTopbar('es')">Español</button>
+    <div class="lang-toggle" id="langToggle">
+      <button type="button" class="lang-current" id="langCurrent" aria-label="Change language">
+        🌐 <span id="langLabel">EN</span>
+      </button>
+      <div class="lang-menu" aria-label="Language menu">
+        <button type="button" data-lang="en" onclick="setLanguageFromTopbar('en')">English</button>
+        <button type="button" data-lang="no" onclick="setLanguageFromTopbar('no')">Norsk</button>
+        <button type="button" data-lang="es" onclick="setLanguageFromTopbar('es')">Español</button>
+      </div>
     </div>
   </div>
 </header>
@@ -752,6 +817,135 @@ window.dbg && window.dbg("saveAsPDF exists: " + (typeof window.saveAsPDF !== "un
     var toggle = document.getElementById("langToggle");
     if (toggle) toggle.classList.remove("open");
   }
+</script>
+
+<!-- Reset form function -->
+<script>
+  function resetForm() {
+    var dbg = window.dbg || function(){};
+    dbg("[reset] resetForm called");
+    
+    // Get confirmation message based on current language
+    var lang = localStorage.getItem("unearthed-lang") || "no";
+    var confirmMsgs = {
+      en: "Clear all form fields (except finder info)?",
+      no: "Tøm alle skjemafelt (unntatt finnerinfo)?",
+      es: "¿Borrar todos los campos (excepto datos del descubridor)?"
+    };
+    var msg = confirmMsgs[lang] || confirmMsgs.en;
+    
+    if (!confirm(msg)) {
+      dbg("[reset] User cancelled");
+      return;
+    }
+    
+    dbg("[reset] Clearing fields");
+    
+    // Fields to clear (excludes finder info which is persisted)
+    var fieldsToClear = [
+      "ownerName", "ownerAddress", "ownerPhone", "ownerEmail",
+      "ownerKommune", "ownerGnr", "ownerBnr",
+      "objectName", "material", "age", "findDepth", "location", "notes"
+    ];
+    
+    for (var i = 0; i < fieldsToClear.length; i++) {
+      var el = document.getElementById(fieldsToClear[i]);
+      if (el) el.value = "";
+    }
+    
+    // Reset select elements to first option
+    var objectType = document.getElementById("objectType");
+    if (objectType) objectType.selectedIndex = 0;
+    var arealtype = document.getElementById("arealtype");
+    if (arealtype) arealtype.selectedIndex = 0;
+    
+    // Clear photo input
+    var photo = document.getElementById("photo");
+    if (photo) photo.value = "";
+    
+    // Clear map markers (address marker and circle)
+    if (window.AppMap && window.AppMap.clearAddressMarker) {
+      window.AppMap.clearAddressMarker();
+      dbg("[reset] Address marker cleared");
+    }
+    
+    // Clear location status text
+    var status = document.getElementById("locationStatus");
+    if (status) status.textContent = "";
+    
+    dbg("[reset] Form reset complete");
+  }
+</script>
+
+<!-- Inline clear buttons for input fields -->
+<script>
+(function() {
+  var clearableFields = [
+    "finderName", "finderAddress", "finderPhone", "finderEmail",
+    "ownerName", "ownerAddress", "ownerPhone", "ownerEmail",
+    "ownerKommune", "ownerGnr", "ownerBnr",
+    "objectName", "material", "age", "findDepth", "notes"
+  ];
+  
+  function setupClearButtons() {
+    var dbg = window.dbg || function(){};
+    dbg("[clearBtns] Setting up clear buttons");
+    
+    for (var i = 0; i < clearableFields.length; i++) {
+      var fieldId = clearableFields[i];
+      var field = document.getElementById(fieldId);
+      if (!field) continue;
+      
+      // Skip if already wrapped
+      if (field.parentNode.classList && field.parentNode.classList.contains("input-clearable")) continue;
+      
+      // Create wrapper
+      var wrapper = document.createElement("div");
+      wrapper.className = "input-clearable";
+      if (field.tagName.toLowerCase() === "textarea") {
+        wrapper.className += " textarea-wrap";
+      }
+      field.parentNode.insertBefore(wrapper, field);
+      wrapper.appendChild(field);
+      
+      // Create clear button
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "clear-field-btn";
+      btn.innerHTML = "×";
+      btn.setAttribute("aria-label", "Clear field");
+      btn.setAttribute("tabindex", "-1");
+      wrapper.appendChild(btn);
+      
+      // Show/hide based on field content
+      (function(f, b) {
+        function updateVisibility() {
+          b.style.display = f.value ? "block" : "none";
+        }
+        f.addEventListener("input", updateVisibility);
+        f.addEventListener("change", updateVisibility);
+        updateVisibility();
+        
+        b.addEventListener("click", function(e) {
+          e.preventDefault();
+          f.value = "";
+          b.style.display = "none";
+          f.focus();
+          var evt = document.createEvent("HTMLEvents");
+          evt.initEvent("change", true, false);
+          f.dispatchEvent(evt);
+        });
+      })(field, btn);
+    }
+    dbg("[clearBtns] Setup complete");
+  }
+  
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", setupClearButtons);
+  } else {
+    setupClearButtons();
+  }
+})();
 </script>
 
 <!-- Prevent premature form submission -->

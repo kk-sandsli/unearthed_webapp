@@ -32,6 +32,17 @@
   var GEONORGE_API_URL = "https://ws.geonorge.no/adresser/v1/punktsok";
 
   /**
+   * Dispatch a change event on an element (ES5 compatible).
+   * Used to notify clear buttons when fields are programmatically updated.
+   */
+  function dispatchChange(el) {
+    if (!el) return;
+    var evt = document.createEvent("HTMLEvents");
+    evt.initEvent("change", true, false);
+    el.dispatchEvent(evt);
+  }
+
+  /**
    * Convert WGS84 (lat, lon) to UTM Zone 32N (EPSG:25832)
    * Returns { easting, northing } in meters
    */
@@ -222,24 +233,28 @@
     var addrInput = document.getElementById("ownerAddress");
     if (addrInput) {
       addrInput.value = fullAddress;
+      dispatchChange(addrInput);
     }
 
     // Update kommune field
     var kommuneInput = document.getElementById("ownerKommune");
     if (kommuneInput) {
       kommuneInput.value = addressData.kommunenavn || "";
+      dispatchChange(kommuneInput);
     }
 
     // Update gårdsnummer field
     var gnrInput = document.getElementById("ownerGnr");
     if (gnrInput) {
       gnrInput.value = addressData.gardsnummer ? String(addressData.gardsnummer) : "";
+      dispatchChange(gnrInput);
     }
 
     // Update bruksnummer field
     var bnrInput = document.getElementById("ownerBnr");
     if (bnrInput) {
       bnrInput.value = addressData.bruksnummer ? String(addressData.bruksnummer) : "";
+      dispatchChange(bnrInput);
     }
     log("Owner fields updated");
   }
@@ -252,7 +267,10 @@
     var fields = ["ownerAddress", "ownerKommune", "ownerGnr", "ownerBnr"];
     for (var i = 0; i < fields.length; i++) {
       var el = document.getElementById(fields[i]);
-      if (el) el.value = "";
+      if (el) {
+        el.value = "";
+        dispatchChange(el);
+      }
     }
   }
 
