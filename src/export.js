@@ -124,9 +124,17 @@ try { window.dbg && window.dbg("export.js FILE START"); } catch(e) {}
 
   function parseLatLon(str) {
     if (!str) return null;
-    var m = /Lat:\s*([-0-9.]+)\s*,\s*Lon:\s*([-0-9.]+)/i.exec(str);
-    if (!m) return null;
-    return { lat: Number(m[1]), lon: Number(m[2]) };
+    // Try WGS84 format first: "Lat: XX.XXXXXX, Lon: YY.YYYYYY"
+    var wgs84Match = /Lat:\s*([-0-9.]+)\s*,\s*Lon:\s*([-0-9.]+)/i.exec(str);
+    if (wgs84Match) {
+      return { lat: Number(wgs84Match[1]), lon: Number(wgs84Match[2]), format: "wgs84" };
+    }
+    // Try UTM32 format: "N: XXXXXXX, E: XXXXXX"
+    var utm32Match = /N:\s*([-0-9.]+)\s*,\s*E:\s*([-0-9.]+)/i.exec(str);
+    if (utm32Match) {
+      return { northing: Number(utm32Match[1]), easting: Number(utm32Match[2]), format: "utm32" };
+    }
+    return null;
   }
 
   /**
@@ -335,8 +343,13 @@ try { window.dbg && window.dbg("export.js FILE START"); } catch(e) {}
       photoPromises.push(readFileAsDataURL(photoFiles[pi]));
     }
 
-    // Parse location for GPS
+    // Parse location for GPS display
     var parsed = parseLatLon(locationStr);
+    
+    // Get actual lat/lon from AppMap (always stored in WGS84 internally)
+    var latLonForApi = (global.AppMap && global.AppMap.getLastLatLon) 
+      ? global.AppMap.getLastLatLon() 
+      : null;
 
     // Parse finder address
     var finderStreet = "";
@@ -437,15 +450,36 @@ try { window.dbg && window.dbg("export.js FILE START"); } catch(e) {}
           }
         }
 
-        // GPS
+        // GPS - handle both WGS84 and UTM32 formats
         if (parsed) {
-          form.getTextField("GPS-nord").setText(parsed.lat.toFixed(6));
-          form.getTextField("GPS-øst").setText(parsed.lon.toFixed(6));
+          if (parsed.format === "utm32") {
+            // UTM32 format from location field
+            form.getTextField("GPS-nord").setText(String(Math.round(parsed.northing)));
+            form.getTextField("GPS-øst").setText(String(Math.round(parsed.easting)));
+            form.getTextField("Datum/projeksjon").setText("UTM32N (EPSG:25832)");
+          } else {
+            // WGS84 format - check if user wants UTM32 conversion
+            var coordSys = (global.AppMap && global.AppMap.getEffectiveCoordSystem) 
+              ? global.AppMap.getEffectiveCoordSystem() 
+              : "wgs84";
+            
+            if (coordSys === "utm32" && global.AppMap && global.AppMap.wgs84ToUtm32) {
+              // Convert to UTM32
+              var utm = global.AppMap.wgs84ToUtm32(parsed.lat, parsed.lon);
+              form.getTextField("GPS-nord").setText(String(Math.round(utm.northing)));
+              form.getTextField("GPS-øst").setText(String(Math.round(utm.easting)));
+              form.getTextField("Datum/projeksjon").setText("UTM32N (EPSG:25832)");
+            } else {
+              // Use WGS84
+              form.getTextField("GPS-nord").setText(parsed.lat.toFixed(6));
+              form.getTextField("GPS-øst").setText(parsed.lon.toFixed(6));
+              form.getTextField("Datum/projeksjon").setText("WGS84 (EPSG:4326)");
+            }
+          }
         }
-        form.getTextField("Datum/projeksjon").setText("WGS84 (EPSG:4326)");
 
-        // Fetch kommune info (returns Promise)
-        var kommunePromise = parsed ? fetchKommuneInfo(parsed.lat, parsed.lon) : Promise.resolve(null);
+        // Fetch kommune info (returns Promise) - use WGS84 lat/lon from AppMap
+        var kommunePromise = latLonForApi ? fetchKommuneInfo(latLonForApi.lat, latLonForApi.lon) : Promise.resolve(null);
         
         return kommunePromise.then(function(kommuneInfo) {
           dbg("[export] kommuneInfo: " + (kommuneInfo ? JSON.stringify(kommuneInfo) : "null"));

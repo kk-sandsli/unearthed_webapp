@@ -13,8 +13,155 @@
   var lastLatLon = null;
   var lastAddressData = null; // Store address data from Geonorge API
 
+  // Coordinate system: "utm32" or "wgs84"
+  var COORD_STORAGE_KEY = "unearthed-coord-system";
+  var coordSystem = "utm32"; // Default to UTM32
+
+  // UTM Zone 32N bounds (longitude 3°E to 12°E)
+  var UTM32_LON_MIN = 3;
+  var UTM32_LON_MAX = 12;
+
   // Geonorge API endpoint for point search
   var GEONORGE_API_URL = "https://ws.geonorge.no/adresser/v1/punktsok";
+
+  /**
+   * Convert WGS84 (lat, lon) to UTM Zone 32N (EPSG:25832)
+   * Returns { easting, northing } in meters
+   */
+  function wgs84ToUtm32(lat, lon) {
+    // WGS84 ellipsoid parameters
+    var a = 6378137.0; // semi-major axis
+    var f = 1 / 298.257223563; // flattening
+    var k0 = 0.9996; // scale factor
+    var lon0 = 9; // central meridian for zone 32
+
+    var e2 = 2 * f - f * f; // eccentricity squared
+    var e4 = e2 * e2;
+    var e6 = e4 * e2;
+    var ep2 = e2 / (1 - e2); // second eccentricity squared
+
+    var latRad = lat * Math.PI / 180;
+    var lonRad = lon * Math.PI / 180;
+    var lon0Rad = lon0 * Math.PI / 180;
+
+    var N = a / Math.sqrt(1 - e2 * Math.sin(latRad) * Math.sin(latRad));
+    var T = Math.tan(latRad) * Math.tan(latRad);
+    var C = ep2 * Math.cos(latRad) * Math.cos(latRad);
+    var A = (lonRad - lon0Rad) * Math.cos(latRad);
+
+    // Meridional arc
+    var M = a * (
+      (1 - e2/4 - 3*e4/64 - 5*e6/256) * latRad -
+      (3*e2/8 + 3*e4/32 + 45*e6/1024) * Math.sin(2*latRad) +
+      (15*e4/256 + 45*e6/1024) * Math.sin(4*latRad) -
+      (35*e6/3072) * Math.sin(6*latRad)
+    );
+
+    var A2 = A * A;
+    var A3 = A2 * A;
+    var A4 = A3 * A;
+    var A5 = A4 * A;
+    var A6 = A5 * A;
+    var T2 = T * T;
+
+    var easting = k0 * N * (
+      A + 
+      (1 - T + C) * A3 / 6 + 
+      (5 - 18*T + T2 + 72*C - 58*ep2) * A5 / 120
+    ) + 500000; // False easting
+
+    var northing = k0 * (
+      M + N * Math.tan(latRad) * (
+        A2 / 2 + 
+        (5 - T + 9*C + 4*C*C) * A4 / 24 + 
+        (61 - 58*T + T2 + 600*C - 330*ep2) * A6 / 720
+      )
+    );
+
+    return { easting: easting, northing: northing };
+  }
+
+  /**
+   * Check if coordinates are within UTM Zone 32 bounds
+   */
+  function isInUtm32Zone(lon) {
+    return lon >= UTM32_LON_MIN && lon <= UTM32_LON_MAX;
+  }
+
+  /**
+   * Get effective coordinate system (falls back to WGS84 if outside UTM32 zone)
+   */
+  function getEffectiveCoordSystem(lon) {
+    if (coordSystem === "utm32" && !isInUtm32Zone(lon)) {
+      return "wgs84";
+    }
+    return coordSystem;
+  }
+
+  /**
+   * Load coordinate system preference from localStorage
+   */
+  function loadCoordSystemPreference() {
+    try {
+      var stored = localStorage.getItem(COORD_STORAGE_KEY);
+      if (stored === "wgs84" || stored === "utm32") {
+        coordSystem = stored;
+      }
+    } catch (e) {
+      // localStorage not available, use default
+    }
+  }
+
+  /**
+   * Save coordinate system preference to localStorage
+   */
+  function saveCoordSystemPreference() {
+    try {
+      localStorage.setItem(COORD_STORAGE_KEY, coordSystem);
+    } catch (e) {
+      // localStorage not available
+    }
+  }
+
+  /**
+   * Toggle coordinate system and update display
+   */
+  function toggleCoordSystem() {
+    coordSystem = (coordSystem === "utm32") ? "wgs84" : "utm32";
+    saveCoordSystemPreference();
+    updateToggleButton();
+    
+    // Re-format current coordinates if we have them
+    if (lastLatLon) {
+      var input = document.getElementById("location");
+      if (input) {
+        input.value = formatCoordinates(lastLatLon.lat, lastLatLon.lon);
+      }
+    }
+    
+    log("Coordinate system toggled to: " + coordSystem);
+  }
+
+  /**
+   * Update the toggle button text to reflect current system
+   */
+  function updateToggleButton() {
+    var btn = document.getElementById("coordToggle");
+    if (!btn) return;
+    
+    var effectiveSys = coordSystem;
+    if (lastLatLon && coordSystem === "utm32" && !isInUtm32Zone(lastLatLon.lon)) {
+      effectiveSys = "wgs84";
+      btn.textContent = "WGS84*"; // Asterisk indicates fallback
+      btn.title = "Outside UTM32 zone - using WGS84";
+    } else {
+      btn.textContent = coordSystem.toUpperCase();
+      btn.title = "Click to toggle coordinate system";
+    }
+  }
+
+  // Load preference on init
+  loadCoordSystemPreference();
 
   // Simple debug helper - uses global dbg() from index.html
   function log(msg) {
@@ -28,8 +175,22 @@
   // You already load Leaflet CSS in your HTML; make sure you also load the JS:
   // <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
-  function formatLatLon(lat, lon) {
+  /**
+   * Format coordinates based on current coordinate system preference
+   */
+  function formatCoordinates(lat, lon) {
+    var effectiveSys = getEffectiveCoordSystem(lon);
+    
+    if (effectiveSys === "utm32") {
+      var utm = wgs84ToUtm32(lat, lon);
+      return "N: " + Math.round(utm.northing) + ", E: " + Math.round(utm.easting);
+    }
     return "Lat: " + lat.toFixed(6) + ", Lon: " + lon.toFixed(6);
+  }
+
+  // Keep old function name for compatibility
+  function formatLatLon(lat, lon) {
+    return formatCoordinates(lat, lon);
   }
 
   /**
@@ -205,12 +366,15 @@
     
     var input = document.getElementById("location");
     if (input) {
-      input.value = formatLatLon(lat, lon);
+      input.value = formatCoordinates(lat, lon);
       dbg("[updateLoc] location field set");
     } else {
       dbg("[updateLoc] ERROR: no #location");
     }
     lastLatLon = { lat: lat, lon: lon };
+
+    // Update toggle button to reflect effective coordinate system
+    updateToggleButton();
 
     // Fetch address data from Geonorge API (async, best-effort)
     dbg("[updateLoc] calling fetchAddressFromGeonorge");
@@ -331,6 +495,9 @@
       );
     }
     
+    // Initialize toggle button text
+    updateToggleButton();
+    
     dbg("[initMap] done");
     } catch(e) {
       dbg("[initMap] ERROR: " + e.message);
@@ -387,7 +554,16 @@
   appMapObj.useCurrentLocation = useCurrentLocation;
   appMapObj.getLastLatLon = getLastLatLon;
   appMapObj.getLastAddressData = getLastAddressData;
+  appMapObj.getCoordSystem = function() { return coordSystem; };
+  appMapObj.getEffectiveCoordSystem = function() {
+    return lastLatLon ? getEffectiveCoordSystem(lastLatLon.lon) : coordSystem;
+  };
+  appMapObj.wgs84ToUtm32 = wgs84ToUtm32;
+  appMapObj.toggleCoordSystem = toggleCoordSystem;
   global.AppMap = appMapObj;
+  
+  // Expose toggle function globally for onclick handler
+  global.toggleCoordSystem = toggleCoordSystem;
   
   if (typeof window.dbg === "function") {
     window.dbg("map-and-location IIFE completed OK");
