@@ -156,6 +156,23 @@
       margin-top: 0;
       margin-bottom: 0.4em;
     }
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .approval-check {
+      display: flex;
+      align-items: center;
+      gap: 0.3em;
+      font-size: 0.85em;
+      font-weight: normal;
+      margin: 0;
+    }
+    .approval-check input {
+      width: auto;
+      margin: 0;
+    }
     label {
       display: block;
       margin-top: 0.7em;
@@ -370,7 +387,13 @@
     </div>
 
     <div>
-      <h3 data-i18n="ownerTitle">Land owner</h3>
+      <div class="section-header">
+        <h3 data-i18n="ownerTitle">Land owner</h3>
+        <label class="approval-check">
+          <input type="checkbox" id="ownerApproval" />
+          <span data-i18n="labelApproval">Approved</span>
+        </label>
+      </div>
       <label for="ownerName" data-i18n="labelName">Name</label>
       <input type="text" id="ownerName" data-i18n-placeholder="phOwnerName" />
       <label for="ownerPhone" data-i18n="labelPhone">Telephone</label>

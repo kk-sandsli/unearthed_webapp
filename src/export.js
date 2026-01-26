@@ -434,10 +434,6 @@ try { window.dbg && window.dbg("export.js FILE START"); } catch(e) {}
         form.getTextField("Telefonnummer grunneier").setText(owner.phone);
         form.getTextField("E-post grunneier").setText(owner.email);
 
-        if (owner.name && owner.name.trim() !== "") {
-          safeCheckBox(form, "Grunneier har gitt tillatelse _y87rRhfj6A5hS8oITp7knw");
-        }
-
         form.getTextField("Gjenstand").setText(objName);
 
         if (depth) {
@@ -484,6 +480,12 @@ try { window.dbg && window.dbg("export.js FILE START"); } catch(e) {}
           
           // Reset only the checkboxes we control
           resetKnownCheckboxes(form);
+          
+          // Check permission box based on webapp checkbox state (after reset)
+          var approvalCheckbox = document.getElementById("ownerApproval");
+          if (approvalCheckbox && approvalCheckbox.checked) {
+            safeCheckBox(form, "Grunneier har gitt tillatelse _y87rRhfj6A5hS8oITp7knw");
+          }
           
           if (kommuneInfo && kommuneInfo.fylkesnavn) {
             try {

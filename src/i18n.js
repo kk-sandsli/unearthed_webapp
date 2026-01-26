@@ -14,6 +14,7 @@
 
       finderTitle: "Finder",
       ownerTitle: "Land owner",
+      labelApproval: "Approved",
 
       labelName: "Name",
       labelAddress: "Address",
@@ -81,6 +82,7 @@
 
       finderTitle: "Finner",
       ownerTitle: "Grunneier",
+      labelApproval: "Godkjent",
 
       labelName: "Navn",
       labelAddress: "Adresse",
@@ -148,6 +150,7 @@
 
       finderTitle: "Descubridor",
       ownerTitle: "Propietario del terreno",
+      labelApproval: "Aprobado",
 
       labelName: "Nombre",
       labelAddress: "Dirección",
