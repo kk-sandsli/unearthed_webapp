@@ -67,7 +67,7 @@
       btnReset: "Reset",
 
       mapHint: "Tap the map to select location, or use the button below for GPS. Blue marker shows find location, green circle shows nearest address.",
-      pdfEditHint: "Note: The PDF may not be editable on phones, but will be on a computer.",
+      pdfEditHint: "Note: The PDF may not be editable on all phones, but works on most computers.",
       labelkommune: "Municipality",
       phkommune: "Auto-filled from GPS",
       labelgnr: "Farm no. (Gnr)",
@@ -136,7 +136,7 @@
       btnReset: "Nullstill",
 
       mapHint: "Trykk på kartet for å velge posisjon, eller bruk knappen under for GPS. Blå markør viser funnsted, grønn sirkel viser nærmeste adresse.",
-      pdfEditHint: "Merk: PDF-en kan ikke redigeres på telefon, men fungerer på datamaskin.",
+      pdfEditHint: "Merk: PDF-en kan ikke redigeres på alle telefoner, men fungerer på de fleste datamaskiner.",
       labelkommune: "Kommune",
       phkommune: "Hentes fra GPS",
       labelgnr: "Gårdsnummer (Gnr)",
@@ -205,7 +205,7 @@
       btnReset: "Restablecer",
 
       mapHint: "Toca el mapa para seleccionar ubicación, o usa el botón de abajo para GPS. El marcador azul muestra la ubicación del hallazgo, el círculo verde muestra la dirección más cercana.",
-      pdfEditHint: "Nota: El PDF puede no ser editable en teléfonos, pero funcionará en un ordenador.",
+      pdfEditHint: "Nota: El PDF puede no ser editable en todos los teléfonos, pero funciona en la mayoría de los ordenadores.",
       labelkommune: "Municipio",
       phkommune: "Se rellena desde GPS",
       labelgnr: "Nº de finca (Gnr)",
