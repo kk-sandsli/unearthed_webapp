@@ -338,6 +338,10 @@
       top: 12px;
       transform: none;
     }
+    /* For file input, position clear button at far right without overlapping native button */
+    .input-clearable input[type="file"] {
+      padding-right: 2.5em;
+    }
   </style>
 </head>
 <body>
@@ -946,7 +950,7 @@ window.dbg && window.dbg("saveAsPDF exists: " + (typeof window.saveAsPDF !== "un
     "finderName", "finderAddress", "finderPhone", "finderEmail",
     "ownerName", "ownerAddress", "ownerPhone", "ownerEmail",
     "ownerKommune", "ownerGnr", "ownerBnr",
-    "objectName", "material", "age", "findDepth", "notes"
+    "objectName", "material", "age", "findDepth", "notes", "photo"
   ];
   
   function setupClearButtons() {
