@@ -32,9 +32,12 @@
       phObjectName: "e.g. Bronze brooch",
       labelObjectType: "Type of object",
 
+      optCoin: "Coin",
+      optJewelry: "Jewelry",
+      optButtonFastener: "Button/Fastener",
       optTool: "Tool",
       optWeapon: "Weapon",
-      optJewelry: "Jewelry",
+      optReligious: "Religious object",
       optPottery: "Pottery",
       optOther: "Other",
 
@@ -101,9 +104,12 @@
       phObjectName: "f.eks. bronseknapp",
       labelObjectType: "Type gjenstand",
 
+      optCoin: "Mynt",
+      optJewelry: "Smykke",
+      optButtonFastener: "Knapp/spenne",
       optTool: "Redskap",
       optWeapon: "Våpen",
-      optJewelry: "Smykke",
+      optReligious: "Religiøs gjenstand",
       optPottery: "Keramikk",
       optOther: "Annet",
 
@@ -170,9 +176,12 @@
       phObjectName: "p. ej. broche de bronce",
       labelObjectType: "Tipo de objeto",
 
+      optCoin: "Moneda",
+      optJewelry: "Joyería",
+      optButtonFastener: "Botón/hebilla",
       optTool: "Herramienta",
       optWeapon: "Arma",
-      optJewelry: "Joyería",
+      optReligious: "Objeto religioso",
       optPottery: "Cerámica",
       optOther: "Otro",
 
